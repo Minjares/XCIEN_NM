@@ -15,10 +15,18 @@
     "@nuxt/icon": "1.13.0",
     "@nuxt/image": "1.10.0",
     "@nuxt/ui": "3.1.2",
+    "chart.js": "^4.4.9",
+    "d3": "^7.9.0",
+    "d3-drag": "^3.0.0",
+    "d3-force": "^3.0.0",
+    "d3-selection": "^3.0.0",
     "eslint": "^9.0.0",
     "nuxt": "^3.17.3",
     "typescript": "^5.6.3",
     "vue": "^3.5.14",
     "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3"
   }
 }

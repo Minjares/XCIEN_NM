@@ -1,3 +1,56 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: #333;
+  background-color: #0f172b;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+/* Network graph custom styles */
+.node-type.router {
+  color: var(--primary-500);
+}
+
+.node-type.switch {
+  color: var(--secondary-500);
+}
+
+/* Animation for loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Custom styles for charts */
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
