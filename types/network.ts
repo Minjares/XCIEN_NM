@@ -101,4 +101,56 @@ export class NetworkGraph {
     
     return graph;
   }
+
+  // Get links with bandwidth above a threshold
+  getLinksByBandwidthUsage(thresholdPercentage: number): Link[] {
+    const highUsageLinks: Link[] = [];
+    
+    this.links.forEach(link => {
+      if (link.maxBandwidth > 0) {
+        const usagePercentage = (link.currentBandwidth / link.maxBandwidth) * 100;
+        if (usagePercentage >= thresholdPercentage) {
+          highUsageLinks.push(link);
+        }
+      }
+    });
+    
+    return highUsageLinks;
+  }
+
+  // Get total bandwidth usage for a node
+  getNodeBandwidthUsage(nodeId: string): { 
+    inbound: number, 
+    outbound: number, 
+    total: number 
+  } {
+    let inbound = 0;
+    let outbound = 0;
+    
+    this.links.forEach(link => {
+      const sourceId = typeof link.source === 'string' ? link.source : link.source.id;
+      const targetId = typeof link.target === 'string' ? link.target : link.target.id;
+      
+      if (sourceId === nodeId) {
+        outbound += link.currentBandwidth;
+      } else if (targetId === nodeId) {
+        inbound += link.currentBandwidth;
+      }
+    });
+    
+    return {
+      inbound,
+      outbound,
+      total: inbound + outbound
+    };
+  }
+
+  // Update bandwidth for a specific link
+  updateLinkBandwidth(linkId: string, currentBandwidth: number): void {
+    const link = this.links.get(linkId);
+    if (link) {
+      link.currentBandwidth = currentBandwidth;
+      this.links.set(linkId, link);
+    }
+  }
 }
