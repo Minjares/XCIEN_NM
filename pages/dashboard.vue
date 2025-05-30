@@ -244,9 +244,9 @@
               <UIcon name="i-heroicons-exclamation-circle" class="w-4 h-4" />
               Alertas Críticas
             </div>
-            <UCard 
-              v-for="(alert, index) in criticalAlerts" 
-              :key="'critical-'+index" 
+            <UCard
+              v-for="(alert, index) in criticalAlerts"
+              :key="'critical-'+index"
               class="mb-3 bg-red-50 dark:bg-red-950 border-l-4 border-red-500"
               :ui="{ body: { padding: 'p-3' } }"
             >
@@ -271,9 +271,9 @@
               <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4" />
               Alertas de Advertencia
             </div>
-            <UCard 
-              v-for="(alert, index) in warningAlerts" 
-              :key="'warning-'+index" 
+            <UCard
+              v-for="(alert, index) in warningAlerts"
+              :key="'warning-'+index"
               class="mb-3 bg-yellow-50 dark:bg-yellow-950 border-l-4 border-yellow-500"
               :ui="{ body: { padding: 'p-3' } }"
             >
@@ -320,15 +320,15 @@
         <UDivider />
         <div class="max-h-[400px] overflow-y-auto p-4">
           <div v-if="recentEvents.length > 0" class="space-y-4">
-            <div 
-              v-for="(event, index) in recentEvents" 
+            <div
+              v-for="(event, index) in recentEvents"
               :key="index"
               class="flex items-start gap-3 pb-4 border-b border-gray-100 dark:border-gray-800 last:border-0"
             >
               <div :class="`rounded-full p-2 ${event.type === 'critical' ? 'bg-red-100 text-red-600' : event.type === 'warning' ? 'bg-yellow-100 text-yellow-600' : event.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`">
-                <UIcon 
-                  :name="getEventIcon(event)" 
-                  class="w-4 h-4" 
+                <UIcon
+                  :name="getEventIcon(event)"
+                  class="w-4 h-4"
                 />
               </div>
               <div class="flex-1">
@@ -358,8 +358,7 @@ definePageMeta({
   middleware: ['auth']
 });
 
-// Get translations
-const { t } = useTranslation();
+// All text is now in Spanish directly
 
 // Chart references
 const networkOverviewChart = ref(null);
@@ -379,7 +378,7 @@ const refreshData = () => {
   // For now, we'll just simulate a refresh with a timeout
   const loading = useState('loading', () => true);
   loading.value = true;
-  
+
   setTimeout(() => {
     loading.value = false;
   }, 1000);
@@ -402,12 +401,6 @@ const securityStatusText = computed(() => {
 });
 
 // Event helper functions
-const getEventColor = (event) => {
-  if (event.type === 'critical') return 'bg-red-500';
-  if (event.type === 'warning') return 'bg-yellow-500';
-  if (event.type === 'success') return 'bg-green-500';
-  return 'bg-blue-500'; // default
-};
 
 const getEventIcon = (event) => {
   if (event.type === 'critical') return 'i-heroicons-exclamation-circle';
@@ -523,14 +516,14 @@ onMounted(() => {
     data: {
       labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
       datasets: [{
-        label: t('inboundTraffic') + ' (Gbps)',
+        label: 'Tráfico Entrante (Gbps)',
         data: [2.3, 1.8, 5.4, 7.8, 8.2, 6.5, 3.1],
         borderColor: 'rgba(0, 32, 91, 1)',
         backgroundColor: 'rgba(0, 32, 91, 0.1)',
         tension: 0.4,
         fill: true
       }, {
-        label: t('outboundTraffic') + ' (Gbps)',
+        label: 'Tráfico Saliente (Gbps)',
         data: [1.9, 1.2, 4.8, 6.5, 7.1, 5.8, 2.7],
         borderColor: 'rgba(76, 175, 80, 1)',
         backgroundColor: 'rgba(76, 175, 80, 0.1)',
@@ -563,7 +556,7 @@ onMounted(() => {
   new Chart(deviceStatusChart.value, {
     type: 'doughnut',
     data: {
-      labels: [t('online'), t('offline'), t('maintenance'), t('warning')],
+      labels: ['En línea', 'Desconectado', 'Mantenimiento', 'Advertencia'],
       datasets: [{
         data: [42, 3, 5, 8],
         backgroundColor: [
@@ -602,11 +595,11 @@ onMounted(() => {
     data: {
       labels: ['Router 1', 'Router 2', 'Switch 1', 'Switch 2', 'Switch 3'],
       datasets: [{
-        label: t('cpuUsage') + ' (%)',
+        label: 'Uso de CPU (%)',
         data: [65, 42, 28, 35, 22],
         backgroundColor: 'rgba(0, 32, 91, 0.7)'
       }, {
-        label: t('memoryUsage') + ' (%)',
+        label: 'Uso de Memoria (%)',
         data: [78, 55, 40, 48, 35],
         backgroundColor: 'rgba(76, 175, 80, 0.7)'
       }]

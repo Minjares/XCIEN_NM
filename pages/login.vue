@@ -12,29 +12,22 @@
           </div>
         </template>
 
-
         <form @submit.prevent="handleLogin" class="space-y-6">
-          <UAlert v-if="loginError" color="red" variant="soft" icon="i-heroicons-exclamation-triangle"
-            :title="loginError" class="mb-2 animate-fade-in" />
-
           <UFormField label="Usuario" help="Ingrese su usuario o correo" class="mx-auto w-full">
             <UInput icon="i-lucide-user" v-model="username" placeholder="Usuario" size="lg" class="w-4/5" />
-          </UFormField> 
-
-          <UFormField label="Contraseña" help="Ingrese su contraseña" class="mx-auto w-full">
-          <UInput v-model="password" icon="i-lucide-lock" type="password" label="Contraseña" size="lg" class="w-4/5">
-            <template #trailing>
-              <UButton color="neutral" variant="link" size="sm" :icon="show ? 'i-lucide-eye-off' : 'i-lucide-eye'"
-                :aria-label="show ? 'Hide password' : 'Show password'" :aria-pressed="show" aria-controls="password"
-                @click="show = !show" />
-            </template>
-          </UInput>
           </UFormField>
 
+          <UFormField label="Contraseña" help="Ingrese su contraseña" class="mx-auto w-full">
+            <UInput v-model="password" :type="show ? 'text' : 'password'" icon="i-lucide-lock" placeholder="Contraseña"
+              size="lg" class="w-4/5">
+              <template #trailing>
+                <UButton color="neutral" variant="link" size="sm" :icon="show ? 'i-lucide-eye-off' : 'i-lucide-eye'"
+                  :aria-label="show ? 'Ocultar contraseña' : 'Mostrar contraseña'" :aria-pressed="show"
+                  @click.prevent="show = !show" />
+              </template>
+            </UInput>
+          </UFormField>
 
-          <div class="flex items-center justify-between mt-6">
-            <UCheckbox v-model="rememberMe" :label="t('rememberMe')" color="primary" />
-          </div>
 
           <UButton type="submit" block color="primary" size="xl" :loading="isLoading"
             class="mt-8 py-3 rounded-xl shadow-lg font-semibold text-lg">
@@ -53,51 +46,42 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
 
-// Define the layout for this page
 definePageMeta({
   layout: 'auth'
 });
 
-// Get router and translations
-const router = useRouter();
-const { t } = useTranslation();
-const { login } = useAuth();
 
-// Form state
-const username = ref('');
-const password = ref('');
-const rememberMe = ref(false);
-const isLoading = ref(false);
-const loginError = ref('');
-const show = ref(false); // Added for password visibility toggle
 
-// Handle login submission
+const supabase = useSupabaseClient()
+const router = useRouter()
+
+
+const username = ref('')
+const password = ref('')
+const show = ref(false)
+const isLoading = ref(false)
+const loginError = ref(null)
+
 const handleLogin = async () => {
-  if (isLoading.value) return;
-
-  isLoading.value = true;
-  loginError.value = '';
+  isLoading.value = true
+  loginError.value = null
 
   try {
-    // Call login function from auth composable
-    // In our simplified version, this will always succeed
-    const success = await login();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: username.value,
+      password: password.value
+    })
 
-    if (success) {
-      // Redirect to dashboard
-      navigateTo('/dashboard');
+    if (error) {
+      loginError.value = error.message
     } else {
-      // For demonstration, set a generic error if login isn't explicitly successful
-      loginError.value = 'Usuario o contraseña incorrectos.';
+      router.push('/')
     }
-  } catch (error) {
-    console.error('Login error:', error);
-    loginError.value = 'Ocurrió un error al intentar iniciar sesión. Por favor, inténtelo de nuevo.';
+  } catch (err) {
+    loginError.value = 'Ocurrió un error al iniciar sesión'
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 </script>

@@ -5,9 +5,9 @@
         <NuxtLink to="/dashboard" class="flex items-center">
           <img src="/xcien-logo.svg" alt="XCIEN Logo" class="h-8 mr-2" />
         </NuxtLink>
-        
+
         <UNavigationMenu :items="navigationItems" class="flex-1 justify-center" />
-        
+
         <UButton
           variant="ghost"
           icon="i-heroicons-arrow-right-on-rectangle"
@@ -17,7 +17,7 @@
         </UButton>
       </div>
     </div>
-    
+
     <main class="flex-1">
       <slot />
     </main>
@@ -26,11 +26,14 @@
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
-import { onMounted, computed } from 'vue';
+import { computed } from 'vue';
 import type { NavigationMenuItem } from '@nuxt/ui';
 
+
+
+const supabase = useSupabaseClient()
 const route = useRoute();
-const { isAuthenticated, logout, initAuth } = useAuth();
+
 
 const navigationItems = computed<NavigationMenuItem[]>(() => [
   {
@@ -47,14 +50,18 @@ const navigationItems = computed<NavigationMenuItem[]>(() => [
   }
 ]);
 
-// Initialize auth state
-onMounted(() => {
-  initAuth();
-});
 
-// Handle logout
-const handleLogout = () => {
-  logout();
+
+const handleLogout = async () => {
+  try{
+
+  await supabase.auth.signOut();
+
   navigateTo('/login');
+
+  } catch(error){
+
+  }
+
 };
 </script>
