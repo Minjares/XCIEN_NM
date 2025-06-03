@@ -257,6 +257,10 @@ const renderGraph = () => {
       }
       return 2
     })
+    .attr('stroke-dasharray', (d: any) => {
+      // Make microwave links dotted, fiber links solid
+      return d.type === 'microwave' ? '5,5' : 'none'
+    })
     .attr('fill', 'none')
 
   // Add bandwidth labels to links

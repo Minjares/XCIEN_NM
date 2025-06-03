@@ -39,6 +39,31 @@ export const useCapacityPlanning = (
     return port ? port.deviceId : portId
   }
 
+  // Calculate link weight based on hop count, link type, and available capacity (same as routing)
+  const calculateLinkWeight = (link: Link): number => {
+    let weight = 0
+
+    // 1. Hop count: Each hop adds 10 to the cost
+    weight += 10
+
+    // 2. Link type: Fiber adds 0, microwave adds 2
+    if (link.type === 'microwave') {
+      weight += 2
+    }
+    // Fiber links add 0, so no additional cost
+
+    // 3. Available capacity: Add 100 / available_capacity
+    const availableCapacity = (link.maxBandwidth || 0) - (link.currentBandwidth || 0)
+    if (availableCapacity > 0) {
+      weight += 100 / availableCapacity
+    } else {
+      // If no available capacity, add a high penalty
+      weight += 1000
+    }
+
+    return weight
+  }
+
   // Find path between two nodes using BFS (updated for port-based connections)
   const findPathBetweenNodes = (startId: string, endId: string): string[] | null => {
     if (startId === endId) return [startId]
@@ -179,12 +204,13 @@ export const useCapacityPlanning = (
         })
       }
 
-      // Base cost for using this path (distance/hop cost)
-      totalCost += 10 // Base cost per hop
+      // Use the new sophisticated cost calculation
+      if (link) {
+        totalCost += calculateLinkWeight(link)
+      } else {
+        totalCost += 10 // Fallback if no link found
+      }
     }
-
-    // Add cost for the new connection itself (from selected node to connection point)
-    totalCost += 50 // Base cost for new connection
 
     let status = 'Optimal'
     if (!feasible) {
@@ -267,12 +293,13 @@ export const useCapacityPlanning = (
         })
       }
 
-      // Base cost for using this path (distance/hop cost)
-      totalCost += 10 // Base cost per hop
+      // Use the new sophisticated cost calculation
+      if (link) {
+        totalCost += calculateLinkWeight(link)
+      } else {
+        totalCost += 10 // Fallback if no link found
+      }
     }
-
-    // Add cost for the new connection itself
-    totalCost += 50 // Base cost for new connection
 
     let status = 'Optimal'
     if (!feasible) {

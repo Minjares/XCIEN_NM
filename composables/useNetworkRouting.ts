@@ -16,6 +16,13 @@ export const useNetworkRouting = (
   const routes = ref<Route[]>([])
   const selectedNode = ref<Node | null>(null)
 
+  // Helper function to get node ID from port ID
+  const getNodeIdFromPortId = (portId: string): string => {
+    const allPorts = nodes.value.flatMap(node => node.Ports)
+    const port = allPorts.find(p => p.id === portId)
+    return port ? port.deviceId : portId
+  }
+
   // Get connected nodes for the selected node
   const connectedNodes = computed(() => {
     if (!selectedNode.value) return []
@@ -40,6 +47,31 @@ export const useNetworkRouting = (
       })
       .filter(Boolean) as Node[] // Filter out any undefined nodes
   })
+
+  // Calculate link weight based on hop count, link type, and available capacity
+  const calculateLinkWeight = (link: Link): number => {
+    let weight = 0
+
+    // 1. Hop count: Each hop adds 10 to the cost
+    weight += 10
+
+    // 2. Link type: Fiber adds 0, microwave adds 2
+    if (link.type === 'microwave') {
+      weight += 2
+    }
+    // Fiber links add 0, so no additional cost
+
+    // 3. Available capacity: Add 100 / available_capacity
+    const availableCapacity = (link.maxBandwidth || 0) - (link.currentBandwidth || 0)
+    if (availableCapacity > 0) {
+      weight += 100 / availableCapacity
+    } else {
+      // If no available capacity, add a high penalty
+      weight += 1000
+    }
+
+    return weight
+  }
 
   // Calculate the best path to an ISP using Dijkstra's algorithm
   const findBestPathToISP = (startNodeId: string, ispId: string): string[] | null => {
@@ -75,16 +107,18 @@ export const useNetworkRouting = (
       // Find all neighbors of the current node
       const neighbors: Array<{ id: string; weight: number }> = []
       links.value.forEach(link => {
-        const sourceId = typeof link.source === 'object' ? link.source.id : link.source
-        const targetId = typeof link.target === 'object' ? link.target.id : link.target
+        const sourcePortId = typeof link.source === 'object' ? link.source.id : link.source
+        const targetPortId = typeof link.target === 'object' ? link.target.id : link.target
+        const sourceNodeId = getNodeIdFromPortId(sourcePortId)
+        const targetNodeId = getNodeIdFromPortId(targetPortId)
 
-        if (sourceId === current && unvisited.has(targetId)) {
-          // Calculate weight based on bandwidth usage (higher usage = higher weight)
-          const weight = link.currentBandwidth ? 1 + (link.currentBandwidth / (link.maxBandwidth || 1)) : 1
-          neighbors.push({ id: targetId, weight })
-        } else if (targetId === current && unvisited.has(sourceId)) {
-          const weight = link.currentBandwidth ? 1 + (link.currentBandwidth / (link.maxBandwidth || 1)) : 1
-          neighbors.push({ id: sourceId, weight })
+        if (sourceNodeId === current && unvisited.has(targetNodeId)) {
+          // Calculate weight based on hop count, link type, and available capacity
+          const weight = calculateLinkWeight(link)
+          neighbors.push({ id: targetNodeId, weight })
+        } else if (targetNodeId === current && unvisited.has(sourceNodeId)) {
+          const weight = calculateLinkWeight(link)
+          neighbors.push({ id: sourceNodeId, weight })
         }
       })
 
@@ -149,32 +183,56 @@ export const useNetworkRouting = (
 
       if (!nextHopNode) return
 
-      // Find the link between current node and next hop
-      const link = links.value.find(link => {
-        const sourceId = typeof link.source === 'object' ? link.source.id : link.source
-        const targetId = typeof link.target === 'object' ? link.target.id : link.target
-        return (sourceId === node.id && targetId === nextHopId) ||
-               (sourceId === nextHopId && targetId === node.id)
-      })
+      // Calculate metric based on the total path cost using the same algorithm
+      let metric = 0
 
-      // Calculate metric based on path length and bandwidth usage
-      let metric = path.length - 1 // Base metric is hop count
+      // Calculate the total cost for the entire path
+      console.log(`Calculating cost for path: ${path.map(id => nodes.value.find(n => n.id === id)?.name || id).join(' → ')}`)
 
-      // Add bandwidth factor if available
-      if (link && link.maxBandwidth && link.currentBandwidth) {
-        const usageRatio = link.currentBandwidth / link.maxBandwidth
-        // Higher bandwidth usage increases the metric
-        metric += usageRatio * 5
+      for (let i = 0; i < path.length - 1; i++) {
+        const currentNodeId = path[i]
+        const nextNodeId = path[i + 1]
+        const currentNodeName = nodes.value.find(n => n.id === currentNodeId)?.name || currentNodeId
+        const nextNodeName = nodes.value.find(n => n.id === nextNodeId)?.name || nextNodeId
+
+        // Find the link between current and next node
+        const pathLink = links.value.find(link => {
+          const sourcePortId = typeof link.source === 'object' ? link.source.id : link.source
+          const targetPortId = typeof link.target === 'object' ? link.target.id : link.target
+          const sourceNodeId = getNodeIdFromPortId(sourcePortId)
+          const targetNodeId = getNodeIdFromPortId(targetPortId)
+          return (sourceNodeId === currentNodeId && targetNodeId === nextNodeId) ||
+                 (sourceNodeId === nextNodeId && targetNodeId === currentNodeId)
+        })
+
+        if (pathLink) {
+          const linkCost = calculateLinkWeight(pathLink)
+          const availableCapacity = (pathLink.maxBandwidth || 0) - (pathLink.currentBandwidth || 0)
+          console.log(`  ${currentNodeName} → ${nextNodeName}: Type=${pathLink.type}, Available=${availableCapacity}Mbps, Cost=${linkCost}`)
+          metric += linkCost
+        } else {
+          console.log(`  ${currentNodeName} → ${nextNodeName}: No link found, Cost=10`)
+          metric += 10
+        }
       }
 
+      console.log(`Total path cost: ${metric}`)
+
       // Create the route entry
-      routes.value.push({
+      const finalMetric = Math.round(metric * 10) / 10
+      console.log(`Final metric after rounding: ${finalMetric}`)
+      console.log(`Creating route with metric: ${finalMetric} at ${new Date().toISOString()}`)
+
+      const newRoute = {
         destination: `${isp.name} (${isp.id})`,
         nextHop: nextHopNode.name,
         interface: `Port-${Math.floor(Math.random() * 8) + 1}`,
-        metric: Math.round(metric * 10) / 10, // Round to 1 decimal place
+        metric: finalMetric,
         path: path.map(id => nodes.value.find(n => n.id === id)?.name || id).join(' → ')
-      })
+      }
+
+      console.log(`Route object created:`, newRoute)
+      routes.value.push(newRoute)
     })
 
     // Sort routes by metric (best routes first)
