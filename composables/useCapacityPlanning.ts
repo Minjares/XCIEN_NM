@@ -32,7 +32,14 @@ export const useCapacityPlanning = (
   const newNodeCapacity = ref(100)
   const capacityAnalysis = ref<CapacityAnalysis[]>([])
 
-  // Find path between two nodes using BFS
+  // Helper function to get node ID from port ID
+  const getNodeIdFromPortId = (portId: string): string => {
+    const allPorts = nodes.value.flatMap(node => node.Ports)
+    const port = allPorts.find(p => p.id === portId)
+    return port ? port.deviceId : portId
+  }
+
+  // Find path between two nodes using BFS (updated for port-based connections)
   const findPathBetweenNodes = (startId: string, endId: string): string[] | null => {
     if (startId === endId) return [startId]
 
@@ -46,16 +53,18 @@ export const useCapacityPlanning = (
 
       const currentNode = path[path.length - 1]
 
-      // Find all neighbors of current node
+      // Find all neighbors of current node through port connections
       const neighbors: string[] = []
       links.value.forEach(link => {
-        const sourceId = typeof link.source === 'object' ? link.source.id : link.source
-        const targetId = typeof link.target === 'object' ? link.target.id : link.target
+        const sourcePortId = typeof link.source === 'object' ? link.source.id : link.source
+        const targetPortId = typeof link.target === 'object' ? link.target.id : link.target
+        const sourceNodeId = getNodeIdFromPortId(sourcePortId)
+        const targetNodeId = getNodeIdFromPortId(targetPortId)
 
-        if (sourceId === currentNode && !visited.has(targetId)) {
-          neighbors.push(targetId)
-        } else if (targetId === currentNode && !visited.has(sourceId)) {
-          neighbors.push(sourceId)
+        if (sourceNodeId === currentNode && !visited.has(targetNodeId)) {
+          neighbors.push(targetNodeId)
+        } else if (targetNodeId === currentNode && !visited.has(sourceNodeId)) {
+          neighbors.push(sourceNodeId)
         }
       })
 
@@ -126,9 +135,11 @@ export const useCapacityPlanning = (
       const targetId = completePath[i + 1]
 
       const link = links.value.find(link => {
-        const s = typeof link.source === 'object' ? link.source.id : link.source
-        const t = typeof link.target === 'object' ? link.target.id : link.target
-        return (s === sourceId && t === targetId) || (s === targetId && t === sourceId)
+        const sourcePortId = typeof link.source === 'object' ? link.source.id : link.source
+        const targetPortId = typeof link.target === 'object' ? link.target.id : link.target
+        const sourceNodeId = getNodeIdFromPortId(sourcePortId)
+        const targetNodeId = getNodeIdFromPortId(targetPortId)
+        return (sourceNodeId === sourceId && targetNodeId === targetId) || (sourceNodeId === targetId && targetNodeId === sourceId)
       })
 
       if (!link) {
@@ -196,6 +207,94 @@ export const useCapacityPlanning = (
     }
   }
 
+  // Analyze capacity for a direct route to an ISP
+  const analyzeDirectRouteToISP = (fromNode: Node, isp: Node, path: string[], requiredCapacity: number): CapacityAnalysis | null => {
+    const pathNames = path.map(id => nodes.value.find(n => n.id === id)?.name || id).join(' → ')
+
+    const bottlenecks: CapacityAnalysis['bottlenecks'] = []
+    const upgrades: CapacityAnalysis['upgrades'] = []
+    let totalCost = 0
+    let feasible = true
+    let needsUpgrade = false
+
+    // Analyze each link in the path
+    for (let i = 0; i < path.length - 1; i++) {
+      const sourceId = path[i]
+      const targetId = path[i + 1]
+
+      const link = links.value.find(link => {
+        const sourcePortId = typeof link.source === 'object' ? link.source.id : link.source
+        const targetPortId = typeof link.target === 'object' ? link.target.id : link.target
+        const sourceNodeId = getNodeIdFromPortId(sourcePortId)
+        const targetNodeId = getNodeIdFromPortId(targetPortId)
+        return (sourceNodeId === sourceId && targetNodeId === targetId) || (sourceNodeId === targetId && targetNodeId === sourceId)
+      })
+
+      if (!link) {
+        feasible = false
+        continue
+      }
+
+      const currentUsage = link.currentBandwidth || 0
+      const maxCapacity = link.maxBandwidth || 0
+      const availableCapacity = maxCapacity - currentUsage
+      const usagePercentage = maxCapacity > 0 ? (currentUsage / maxCapacity) * 100 : 0
+
+      // Check if this link can handle the additional capacity
+      if (availableCapacity < requiredCapacity) {
+        needsUpgrade = true
+        const requiredNewCapacity = currentUsage + requiredCapacity
+        const suggestedCapacity = Math.ceil(requiredNewCapacity / 100) * 100 // Round up to nearest 100
+
+        upgrades.push({
+          linkId: link.id,
+          description: `${nodes.value.find(n => n.id === sourceId)?.name} ↔ ${nodes.value.find(n => n.id === targetId)?.name}`,
+          currentCapacity: maxCapacity,
+          newCapacity: suggestedCapacity,
+          cost: calculateUpgradeCost(maxCapacity, suggestedCapacity)
+        })
+
+        totalCost += calculateUpgradeCost(maxCapacity, suggestedCapacity)
+      }
+
+      // Check for potential bottlenecks (high usage)
+      if (usagePercentage > 70) {
+        bottlenecks.push({
+          linkId: link.id,
+          description: `${nodes.value.find(n => n.id === sourceId)?.name} ↔ ${nodes.value.find(n => n.id === targetId)?.name}`,
+          currentUsage: Math.round(usagePercentage),
+          availableCapacity: availableCapacity
+        })
+      }
+
+      // Base cost for using this path (distance/hop cost)
+      totalCost += 10 // Base cost per hop
+    }
+
+    // Add cost for the new connection itself
+    totalCost += 50 // Base cost for new connection
+
+    let status = 'Optimal'
+    if (!feasible) {
+      status = 'No Route'
+    } else if (needsUpgrade) {
+      status = 'Needs Upgrade'
+    } else if (bottlenecks.length > 0) {
+      status = 'Potential Issues'
+    }
+
+    return {
+      routeName: `${fromNode.name} to ${isp.name}`,
+      path: pathNames,
+      feasible: feasible,
+      needsUpgrade: needsUpgrade,
+      totalCost: Math.round(totalCost),
+      bottlenecks: bottlenecks,
+      upgrades: upgrades,
+      status: status
+    }
+  }
+
   // Calculate capacity plan for adding a new node
   const calculateCapacityPlan = (selectedNode: Node) => {
     if (!selectedNode || !newNodeName.value || !newNodeCapacity.value) {
@@ -217,21 +316,31 @@ export const useCapacityPlanning = (
       return
     }
 
-    // Find all possible connection points (nodes that can connect to the selected node)
-    const connectionCandidates = nodes.value.filter(node =>
-      node.id !== selectedNode.id &&
-      (node.type === 'router' || node.type === 'switch')
-    )
+    // For each ISP, find the optimal path from the selected node
+    isps.forEach(isp => {
+      const directPath = findPathBetweenNodes(selectedNode.id, isp.id)
 
-    // For each connection candidate, analyze routes to all ISPs
-    connectionCandidates.forEach(candidate => {
-      isps.forEach(isp => {
-        const analysis = analyzeRouteToISP(selectedNode, candidate, isp, newNodeCapacity.value)
+      if (directPath && directPath.length >= 2) {
+        // Analyze the direct path to this ISP
+        const analysis = analyzeDirectRouteToISP(selectedNode, isp, directPath, newNodeCapacity.value)
         if (analysis) {
           capacityAnalysis.value.push(analysis)
         }
-      })
+      }
     })
+
+    // Remove duplicate routes based on the actual path
+    const uniqueRoutes: CapacityAnalysis[] = []
+    const seenPaths = new Set<string>()
+
+    capacityAnalysis.value.forEach(route => {
+      if (!seenPaths.has(route.path)) {
+        seenPaths.add(route.path)
+        uniqueRoutes.push(route)
+      }
+    })
+
+    capacityAnalysis.value = uniqueRoutes
 
     // Sort by feasibility and cost
     capacityAnalysis.value.sort((a, b) => {

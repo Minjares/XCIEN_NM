@@ -17,7 +17,7 @@ export interface Node extends SimulationNodeDatum {
 }
 
 export interface Link {
-  type: 'cable' | 'microwave';
+  type: 'fiber' | 'microwave';
   id: string;
   source: string | Port;
   target: string | Port;

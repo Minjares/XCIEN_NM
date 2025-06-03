@@ -28,6 +28,7 @@
       :new-node-name="newNodeName"
       :new-node-type="newNodeType"
       :new-node-capacity="newNodeCapacity"
+      :get-port-connections="getPortConnections"
       @update:new-node-name="newNodeName = $event"
       @update:new-node-type="newNodeType = $event"
       @update:new-node-capacity="newNodeCapacity = $event"
@@ -53,7 +54,10 @@ const {
   refreshTopology,
   getLinkBandwidth,
   ispNodes,
-  initialize
+  initialize,
+  getPortConnections,
+  getConnectedDevices,
+  findDetailedPathBetweenNodes
 } = useNetworkTopology()
 
 const {

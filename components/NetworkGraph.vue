@@ -7,10 +7,18 @@
 <script setup lang="ts">
 import * as d3 from 'd3'
 
+interface Port {
+  id: string
+  name: string
+  status: 'active' | 'inactive' | 'error'
+  deviceId: string
+}
+
 interface Node {
   id: string
   name: string
   type: 'router' | 'switch' | 'isp'
+  Ports: Port[]
   x?: number
   y?: number
   fx?: number | null
@@ -19,11 +27,12 @@ interface Node {
 
 interface Link {
   id: string
-  source: string | Node
-  target: string | Node
-  value: number
-  maxBandwidth?: number
-  currentBandwidth?: number
+  source: string | Port
+  target: string | Port
+  type: 'fiber' | 'microwave'
+  maxBandwidth: number
+  currentBandwidth: number
+  value?: number
 }
 
 interface Props {
@@ -57,6 +66,22 @@ onMounted(() => {
     renderGraph()
   }, 100)
 })
+
+// Helper function to get node ID from port ID
+const getNodeIdFromPortId = (portId: string): string => {
+  const allPorts = props.nodes.flatMap(node => node.Ports)
+  const port = allPorts.find(p => p.id === portId)
+  return port ? port.deviceId : portId
+}
+
+// Helper function to convert port-based links to node-based links for D3
+const convertLinksForD3 = (links: Link[]): any[] => {
+  return links.map(link => ({
+    ...link,
+    source: typeof link.source === 'string' ? getNodeIdFromPortId(link.source) : getNodeIdFromPortId(link.source.id),
+    target: typeof link.target === 'string' ? getNodeIdFromPortId(link.target) : getNodeIdFromPortId(link.target.id)
+  }))
+}
 
 const renderGraph = () => {
   console.log('NetworkGraph renderGraph called', {
@@ -95,7 +120,7 @@ const renderGraph = () => {
 
   // Create simulation with proper node data
   const nodesCopy = props.nodes.map(d => ({ ...d }))
-  const linksCopy = props.links.map(d => ({ ...d }))
+  const linksCopy = convertLinksForD3(props.links)
 
   // Create links with thickness based on bandwidth usage
   const link = g.append('g')
@@ -103,7 +128,7 @@ const renderGraph = () => {
     .selectAll('line')
     .data(linksCopy)
     .enter().append('line')
-    .attr('stroke', (d: Link) => {
+    .attr('stroke', (d: any) => {
       if (d.maxBandwidth && d.currentBandwidth) {
         const usage = d.currentBandwidth / d.maxBandwidth
         if (usage > 0.8) return '#ff0000'
@@ -113,7 +138,7 @@ const renderGraph = () => {
       return '#999'
     })
     .attr('stroke-opacity', 0.6)
-    .attr('stroke-width', (d: Link) => {
+    .attr('stroke-width', (d: any) => {
       if (d.maxBandwidth) {
         return 1 + (d.maxBandwidth / 500)
       }
@@ -129,7 +154,7 @@ const renderGraph = () => {
     .attr('font-size', '10px')
     .attr('text-anchor', 'middle')
     .attr('dy', -5)
-    .attr('fill', (d: Link) => {
+    .attr('fill', (d: any) => {
       if (d.maxBandwidth && d.currentBandwidth) {
         const usage = d.currentBandwidth / d.maxBandwidth
         if (usage > 0.8) return '#ff0000'
@@ -138,7 +163,7 @@ const renderGraph = () => {
       }
       return '#666'
     })
-    .text((d: Link) => {
+    .text((d: any) => {
       if (d.maxBandwidth && d.currentBandwidth) {
         return `${d.currentBandwidth}/${d.maxBandwidth} Mbps`
       }
