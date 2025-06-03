@@ -6,28 +6,28 @@ export const useNetworkBandwidthRefresh = () => {
   const refreshProgress = ref(0)
   const refreshErrors = ref<string[]>([])
 
-  // Use our server-side proxy to avoid CORS issues
+  // Usamos un proxy del servidor para evitar problemas de CORS
   const BANDWIDTH_API_BASE = '/api/bandwidth'
 
   /**
-   * Check if a port ID is purely numeric
+   * Verifica si un ID de puerto es puramente numérico
    */
   const isNumericPortId = (portId: string): boolean => {
     return /^\d+$/.test(portId)
   }
 
   /**
-   * Extract ONE numeric port ID from a link (prioritize source, fallback to target)
-   * This minimizes API calls by only checking one port per link
+   * Extrae UN solo ID de puerto numérico de un enlace (prioriza el origen, y si no, usa el destino)
+   * Esto minimiza las llamadas a la API al verificar solo un puerto por enlace
    */
   const extractSingleNumericPortId = (link: Link): string | null => {
-    // Extract source port ID first
+    // Extrae primero el ID del puerto de origen
     const sourceId = typeof link.source === 'object' ? link.source.id : link.source
     if (isNumericPortId(sourceId)) {
       return sourceId
     }
 
-    // Fallback to target port ID if source is not numeric
+    // Si el origen no es numérico, intenta con el destino
     const targetId = typeof link.target === 'object' ? link.target.id : link.target
     if (isNumericPortId(targetId)) {
       return targetId
@@ -37,11 +37,11 @@ export const useNetworkBandwidthRefresh = () => {
   }
 
   /**
-   * Fetch bandwidth data for a specific port from the external API
+   * Obtiene los datos de ancho de banda para un puerto específico desde la API externa
    */
   const fetchPortBandwidth = async (portId: string): Promise<number | null> => {
     try {
-      console.log(`Fetching bandwidth for port ${portId} via server proxy`)
+      console.log(`Obteniendo ancho de banda para el puerto ${portId} vía proxy del servidor`)
 
       const response = await $fetch<{
         success: boolean;
@@ -55,45 +55,44 @@ export const useNetworkBandwidthRefresh = () => {
         method: 'GET',
       })
 
-
       if (response?.success && response?.data) {
         const { in_rate, out_rate, currentBandwidth } = response.data
-        console.log(`Port ${portId} bandwidth: in_rate=${in_rate}, out_rate=${out_rate}, currentBandwidth=${currentBandwidth}`)
+        console.log(`Puerto ${portId} ancho de banda: in_rate=${in_rate}, out_rate=${out_rate}, currentBandwidth=${currentBandwidth}`)
         return currentBandwidth
       }
 
       return null
     } catch (error: any) {
-      console.error(`Error fetching bandwidth for port ${portId}:`, error)
-      console.error(`Error details:`, {
+      console.error(`Error al obtener el ancho de banda del puerto ${portId}:`, error)
+      console.error(`Detalles del error:`, {
         message: error?.message,
         status: error?.status,
         statusText: error?.statusText,
         data: error?.data
       })
 
-      let errorMessage = 'Unknown error'
+      let errorMessage = 'Error desconocido'
       if (error?.status === 401) {
-        errorMessage = 'Unauthorized'
+        errorMessage = 'No autorizado'
       } else if (error?.status === 404) {
-        errorMessage = 'Port not found'
+        errorMessage = 'Puerto no encontrado'
       } else if (error?.status === 400) {
-        errorMessage = 'Invalid port ID'
+        errorMessage = 'ID de puerto inválido'
       } else if (error?.message) {
         errorMessage = error.message
       }
 
-      refreshErrors.value.push(`Port ${portId}: ${errorMessage}`)
+      refreshErrors.value.push(`Puerto ${portId}: ${errorMessage}`)
       return null
     }
   }
 
   /**
-   * Update bandwidth data for all links in the topology
+   * Actualiza los datos de ancho de banda para todos los enlaces en la topología
    */
   const refreshLinksBandwidth = async (links: Ref<Link[]>): Promise<void> => {
     if (isRefreshingBandwidth.value) {
-      console.log('Bandwidth refresh already in progress')
+      console.log('Ya hay una actualización de ancho de banda en curso')
       return
     }
 
@@ -102,16 +101,16 @@ export const useNetworkBandwidthRefresh = () => {
       refreshProgress.value = 0
       refreshErrors.value = []
 
-      console.log('Starting bandwidth refresh process...')
-      console.log('Total links to process:', links.value.length)
+      console.log('Iniciando proceso de actualización de ancho de banda...')
+      console.log('Total de enlaces a procesar:', links.value.length)
 
-      // Collect all unique numeric port IDs from all links (one per link)
+      // Recolecta todos los IDs de puerto numéricos únicos (uno por enlace)
       const portIdsToUpdate = new Set<string>()
-      const linkPortMapping = new Map<string, string>() // linkId -> portId (single port)
+      const linkPortMapping = new Map<string, string>() // linkId -> portId (un solo puerto)
 
       links.value.forEach(link => {
         const numericPortId = extractSingleNumericPortId(link)
-        console.log(`Link ${link.id}: found numeric port ID:`, numericPortId)
+        console.log(`Enlace ${link.id}: ID de puerto numérico encontrado:`, numericPortId)
         if (numericPortId) {
           linkPortMapping.set(link.id, numericPortId)
           portIdsToUpdate.add(numericPortId)
@@ -119,27 +118,27 @@ export const useNetworkBandwidthRefresh = () => {
       })
 
       if (portIdsToUpdate.size === 0) {
-        console.log('No numeric port IDs found in links')
-        console.log('All links:', links.value.map(l => ({
+        console.log('No se encontraron IDs de puerto numéricos en los enlaces')
+        console.log('Todos los enlaces:', links.value.map(l => ({
           id: l.id,
           source: typeof l.source === 'object' ? l.source.id : l.source,
           target: typeof l.target === 'object' ? l.target.id : l.target
         })))
 
-        // For testing purposes, let's try with a known numeric port ID
-        console.log('Testing with known port ID 12497...')
+        // Para pruebas, intentamos con un ID de puerto conocido
+        console.log('Probando con el puerto 12497...')
         const testBandwidth = await fetchPortBandwidth('12497')
-        console.log('Test result:', testBandwidth)
+        console.log('Resultado de prueba:', testBandwidth)
 
         return
       }
 
-      console.log(`Starting bandwidth refresh for ${portIdsToUpdate.size} unique ports:`, Array.from(portIdsToUpdate))
+      console.log(`Iniciando actualización de ancho de banda para ${portIdsToUpdate.size} puertos únicos:`, Array.from(portIdsToUpdate))
 
-      // Fetch bandwidth data for all ports in parallel (with concurrency limit)
+      // Obtener datos de ancho de banda en paralelo (con límite de concurrencia)
       const portBandwidthData = new Map<string, number>()
       const portIds = Array.from(portIdsToUpdate)
-      const batchSize = 5 // Process 5 ports at a time to avoid overwhelming the API
+      const batchSize = 5 // Procesar 5 puertos a la vez para no saturar la API
       
       for (let i = 0; i < portIds.length; i += batchSize) {
         const batch = portIds.slice(i, i + batchSize)
@@ -154,41 +153,41 @@ export const useNetworkBandwidthRefresh = () => {
 
         await Promise.all(batchPromises)
         
-        // Update progress
+        // Actualiza el progreso
         refreshProgress.value = Math.round(((i + batch.length) / portIds.length) * 100)
       }
 
-      // Update currentBandwidth for each link based on the fetched data
+      // Actualiza el campo `currentBandwidth` de cada enlace
       let updatedLinksCount = 0
 
       links.value.forEach(link => {
         const linkPortId = linkPortMapping.get(link.id)
         if (linkPortId) {
-          // Get bandwidth value for the single port representing this link
+          // Obtiene el ancho de banda correspondiente al puerto de este enlace
           const bandwidth = portBandwidthData.get(linkPortId)
 
           if (bandwidth !== undefined) {
             link.currentBandwidth = bandwidth
             updatedLinksCount++
-            console.log(`Updated link ${link.id} with bandwidth ${bandwidth} from port ${linkPortId}`)
+            console.log(`Enlace ${link.id} actualizado con ancho de banda ${bandwidth} del puerto ${linkPortId}`)
           }
         }
       })
 
-      console.log(`Bandwidth refresh completed. Updated ${updatedLinksCount} links.`)
+      console.log(`Actualización de ancho de banda completada. ${updatedLinksCount} enlaces actualizados.`)
       
       if (refreshErrors.value.length > 0) {
-        console.warn(`Bandwidth refresh completed with ${refreshErrors.value.length} errors:`, refreshErrors.value)
+        console.warn(`Actualización completada con ${refreshErrors.value.length} errores:`, refreshErrors.value)
       }
 
     } catch (error) {
-      console.error('Error during bandwidth refresh:', error)
-      refreshErrors.value.push('General error during bandwidth refresh')
+      console.error('Error durante la actualización de ancho de banda:', error)
+      refreshErrors.value.push('Error general durante la actualización de ancho de banda')
     } finally {
       isRefreshingBandwidth.value = false
       refreshProgress.value = 100
       
-      // Clear progress after a short delay
+      // Limpia el progreso después de un pequeño retraso
       setTimeout(() => {
         refreshProgress.value = 0
       }, 2000)
