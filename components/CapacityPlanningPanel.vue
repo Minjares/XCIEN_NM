@@ -1,95 +1,108 @@
 <template>
   <div class="mb-4">
-    <h3 class="font-bold mb-2 border-b pb-1">Capacity Planning</h3>
+    <div class="flex items-center gap-2 mb-3">
+      <UIcon name="i-heroicons-chart-bar" class="w-4 h-4 text-primary-500" />
+      <h3 class="font-bold text-gray-400 text-sm border-b pb-1 flex-1">Planificación de Capacidad</h3>
+    </div>
 
     <!-- New Node Configuration -->
-    <div class="mb-4 p-3 bg-blue-50 rounded">
-      <h4 class="font-medium mb-2">Add New Node</h4>
-      <div class="space-y-2">
+    <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+      <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Agregar Nuevo Nodo</h4>
+
+      <div class="space-y-3">
         <div>
-          <label class="block text-xs font-medium mb-1">Node Name</label>
-          <input
-            :value="newNodeName"
-            @input="$emit('update:newNodeName', ($event.target as HTMLInputElement).value)"
-            type="text"
-            class="w-full px-2 py-1 text-sm border rounded"
-            placeholder="Enter node name"
+          <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Nombre del Nodo</label>
+          <UInput
+            v-model="localNodeName"
+            placeholder="Ej: Router-Principal-01"
+            icon="i-heroicons-server"
+            size="xs"
           />
         </div>
+
         <div>
-          <label class="block text-xs font-medium mb-1">Node Type</label>
-          <select 
-            :value="newNodeType" 
-            @change="$emit('update:newNodeType', ($event.target as HTMLSelectElement).value)"
-            class="w-full px-2 py-1 text-sm border rounded"
-          >
-            <option value="router">Router</option>
-            <option value="switch">Switch</option>
-          </select>
+          <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Tipo de Nodo</label>
+          <USelect
+            v-model="nodeTypeValue"
+            :items="nodeTypeItems"
+            size="xs"
+          />
         </div>
+
         <div>
-          <label class="block text-xs font-medium mb-1">Required Capacity (Mbps)</label>
-          <input
-            :value="newNodeCapacity"
-            @input="$emit('update:newNodeCapacity', Number(($event.target as HTMLInputElement).value))"
+          <label class="block text-xs font-medium mb-1 text-gray-600 dark:text-gray-400">Capacidad Requerida (Mbps)</label>
+          <UInput
+            v-model="localNodeCapacity"
             type="number"
-            class="w-full px-2 py-1 text-sm border rounded"
-            placeholder="e.g., 100"
-            min="1"
+            placeholder="100"
+            icon="i-heroicons-signal"
+            size="xs"
+            :min="1"
           />
         </div>
-        <button
-          @click="$emit('calculate-capacity')"
-          class="w-full px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-          :disabled="!newNodeName || !newNodeCapacity"
+
+        <UButton
+          @click="handleCalculate"
+          color="primary"
+          variant="solid"
+          size="xs"
+          :disabled="!localNodeName || !localNodeCapacity"
+          block
+          icon="i-heroicons-calculator"
         >
-          Calculate Best Routes
-        </button>
+          Calcular Mejores Rutas
+        </UButton>
       </div>
     </div>
 
     <!-- Capacity Analysis Results -->
-    <div v-if="capacityAnalysis.length > 0" class="space-y-2 max-h-60 overflow-y-auto">
-      <h4 class="font-medium text-sm">Route Analysis Results:</h4>
-      <div
-        v-for="(analysis, index) in capacityAnalysis"
-        :key="index"
-        class="p-2 rounded text-sm"
-        :class="{
-          'bg-green-100 border-green-300': analysis.feasible,
-          'bg-red-100 border-red-300': !analysis.feasible,
-          'bg-yellow-100 border-yellow-300': analysis.needsUpgrade
-        }"
-      >
-        <div class="font-medium flex items-center justify-between">
-          <span>{{ analysis.routeName }}</span>
-          <span 
-            class="text-xs px-2 py-1 rounded"
-            :class="{
-              'bg-green-200 text-green-800': analysis.feasible && !analysis.needsUpgrade,
-              'bg-yellow-200 text-yellow-800': analysis.needsUpgrade,
-              'bg-red-200 text-red-800': !analysis.feasible
-            }"
-          >
-            {{ analysis.status }}
-          </span>
-        </div>
-        <div class="text-xs mt-1">
-          Path: {{ analysis.path }}
-        </div>
-        <div class="text-xs">
-          Total Cost: {{ analysis.totalCost }}
-        </div>
-        <div v-if="analysis.bottlenecks.length > 0" class="text-xs mt-1">
-          <span class="font-medium">Bottlenecks:</span>
-          <div v-for="bottleneck in analysis.bottlenecks" :key="bottleneck.linkId" class="ml-2">
-            • {{ bottleneck.description }} ({{ bottleneck.currentUsage }}% used)
-          </div>
-        </div>
-        <div v-if="analysis.upgrades.length > 0" class="text-xs mt-1">
-          <span class="font-medium">Required Upgrades:</span>
-          <div v-for="upgrade in analysis.upgrades" :key="upgrade.linkId" class="ml-2">
-            • {{ upgrade.description }} → {{ upgrade.newCapacity }} Mbps
+    <div v-if="capacityAnalysis.length > 0">
+      <div class="flex items-center gap-2 mb-3">
+        <UIcon name="i-heroicons-chart-pie" class="w-4 h-4 text-primary-500" />
+        <h4 class="font-bold text-sm border-b pb-1 flex-1">Resultados del Análisis</h4>
+      </div>
+
+      <div class="max-h-48 overflow-y-auto space-y-2">
+        <div
+          v-for="(analysis, index) in capacityAnalysis"
+          :key="index"
+          class="p-2 rounded-lg text-xs border"
+          :class="{
+            'border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-700': analysis.feasible && !analysis.needsUpgrade,
+            'border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700': analysis.needsUpgrade,
+            'border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-700': !analysis.feasible
+          }"
+        >
+          <div class="space-y-1">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium">{{ analysis.routeName }}</span>
+              <UBadge
+                :color="analysis.feasible && !analysis.needsUpgrade ? 'success' : analysis.needsUpgrade ? 'warning' : 'error'"
+                variant="subtle"
+                size="xs"
+              >
+                {{ analysis.status }}
+              </UBadge>
+            </div>
+
+            <div class="text-xs text-gray-600 dark:text-gray-400">
+              <div><strong>Ruta:</strong> {{ analysis.path }}</div>
+              <div><strong>Costo:</strong> {{ analysis.totalCost }}</div>
+            </div>
+
+            <div v-if="analysis.bottlenecks.length > 0" class="text-xs">
+              <div class="font-medium text-yellow-700 dark:text-yellow-300">Cuellos de Botella:</div>
+              <div v-for="bottleneck in analysis.bottlenecks" :key="bottleneck.linkId" class="ml-2 text-gray-600 dark:text-gray-400">
+                • {{ bottleneck.description }} ({{ bottleneck.currentUsage }}%)
+              </div>
+            </div>
+
+            <div v-if="analysis.upgrades.length > 0" class="text-xs">
+              <div class="font-medium text-blue-700 dark:text-blue-300">Actualizaciones:</div>
+              <div v-for="upgrade in analysis.upgrades" :key="upgrade.linkId" class="ml-2 text-gray-600 dark:text-gray-400">
+                • {{ upgrade.description }} → {{ upgrade.newCapacity }} Mbps
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -98,6 +111,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed, watch, ref } from 'vue'
+
 interface CapacityAnalysis {
   routeName: string
   path: string
@@ -124,12 +139,32 @@ interface Props {
   newNodeCapacity: number
 }
 
-defineProps<Props>()
-
-defineEmits<{
-  'update:newNodeName': [value: string]
-  'update:newNodeType': [value: string]
-  'update:newNodeCapacity': [value: number]
+const props = defineProps<Props>()
+const emit = defineEmits<{
+  'update:new-node-name': [value: string]
+  'update:new-node-type': [value: string]
+  'update:new-node-capacity': [value: number]
   'calculate-capacity': []
 }>()
+
+// Internal local refs that emit updates
+const localNodeName = ref(props.newNodeName)
+const localNodeCapacity = ref(props.newNodeCapacity)
+
+watch(localNodeName, (val) => emit('update:new-node-name', val))
+watch(localNodeCapacity, (val) => emit('update:new-node-capacity', val))
+
+const nodeTypeItems = [
+  { label: 'Router', value: 'router' },
+  { label: 'Switch', value: 'switch' }
+]
+
+const nodeTypeValue = computed({
+  get: () => props.newNodeType,
+  set: (value: string) => emit('update:new-node-type', value)
+})
+
+const handleCalculate = () => {
+  emit('calculate-capacity')
+}
 </script>
