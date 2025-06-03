@@ -49,11 +49,39 @@ const getNodeIdFromPortId = (portId: string): string => {
 
 // Helper function to convert port-based links to node-based links for D3
 const convertLinksForD3 = (links: Link[]): any[] => {
-  return links.map(link => ({
+  const convertedLinks = links.map(link => ({
     ...link,
     source: typeof link.source === 'string' ? getNodeIdFromPortId(link.source) : getNodeIdFromPortId(link.source.id),
-    target: typeof link.target === 'string' ? getNodeIdFromPortId(link.target) : getNodeIdFromPortId(link.target.id)
+    target: typeof link.target === 'string' ? getNodeIdFromPortId(link.target) : getNodeIdFromPortId(link.target.id),
+    originalSource: link.source,
+    originalTarget: link.target
   }))
+
+  // Group links by node pairs and add curve offset for multiple links
+  const linkGroups = new Map<string, any[]>()
+
+  convertedLinks.forEach(link => {
+    const key = [link.source, link.target].sort().join('-')
+    if (!linkGroups.has(key)) {
+      linkGroups.set(key, [])
+    }
+    linkGroups.get(key)!.push(link)
+  })
+
+  // Add curve offset for multiple links between same nodes
+  linkGroups.forEach(group => {
+    if (group.length > 1) {
+      group.forEach((link, index) => {
+        link.curveOffset = (index - (group.length - 1) / 2) * 30
+        link.isMultiple = true
+      })
+    } else {
+      group[0].curveOffset = 0
+      group[0].isMultiple = false
+    }
+  })
+
+  return convertedLinks
 }
 
 const renderGraph = () => {
@@ -98,9 +126,9 @@ const renderGraph = () => {
   // Create links with thickness based on bandwidth usage
   const link = g.append('g')
     .attr('class', 'links')
-    .selectAll('line')
+    .selectAll('path')
     .data(linksCopy)
-    .enter().append('line')
+    .enter().append('path')
     .attr('stroke', (d: any) => {
       if (d.maxBandwidth && d.currentBandwidth) {
         const usage = d.currentBandwidth / d.maxBandwidth
@@ -113,10 +141,11 @@ const renderGraph = () => {
     .attr('stroke-opacity', 0.6)
     .attr('stroke-width', (d: any) => {
       if (d.maxBandwidth) {
-        return 1 + (d.maxBandwidth / 500)
+        return Math.max(1, 1 + (d.maxBandwidth / 500))
       }
       return 2
     })
+    .attr('fill', 'none')
 
   // Add bandwidth labels to links
   const linkLabels = g.append('g')
@@ -138,6 +167,12 @@ const renderGraph = () => {
     })
     .text((d: any) => {
       if (d.maxBandwidth && d.currentBandwidth) {
+        if (d.isMultiple) {
+          // Show port information for multiple links
+          const sourcePort = typeof d.originalSource === 'string' ? d.originalSource : d.originalSource.id
+          const targetPort = typeof d.originalTarget === 'string' ? d.originalTarget : d.originalTarget.id
+          return `${d.currentBandwidth}/${d.maxBandwidth} Mbps (${sourcePort.split('-').pop()} → ${targetPort.split('-').pop()})`
+        }
         return `${d.currentBandwidth}/${d.maxBandwidth} Mbps`
       }
       return ''
@@ -214,23 +249,93 @@ const renderGraph = () => {
     .on('tick', ticked)
 
   function ticked() {
-    link
-      .attr('x1', (d: any) => d.source.x)
-      .attr('y1', (d: any) => d.source.y)
-      .attr('x2', (d: any) => d.target.x)
-      .attr('y2', (d: any) => d.target.y)
+    link.attr('d', (d: any) => {
+      const dx = d.target.x - d.source.x
+      const dy = d.target.y - d.source.y
+      const dr = Math.sqrt(dx * dx + dy * dy)
+
+      if (d.isMultiple && d.curveOffset !== 0) {
+        // Calculate control point for curved path
+        const midX = (d.source.x + d.target.x) / 2
+        const midY = (d.source.y + d.target.y) / 2
+
+        // Perpendicular offset for curve
+        const offsetX = -dy / dr * d.curveOffset
+        const offsetY = dx / dr * d.curveOffset
+
+        const controlX = midX + offsetX
+        const controlY = midY + offsetY
+
+        return `M${d.source.x},${d.source.y} Q${controlX},${controlY} ${d.target.x},${d.target.y}`
+      } else {
+        // Straight line for single links
+        return `M${d.source.x},${d.source.y} L${d.target.x},${d.target.y}`
+      }
+    })
 
     linkLabels
-      .attr('x', (d: any) => (d.source.x + d.target.x) / 2)
-      .attr('y', (d: any) => (d.source.y + d.target.y) / 2)
+      .attr('x', (d: any) => {
+        if (d.isMultiple && d.curveOffset !== 0) {
+          const dx = d.target.x - d.source.x
+          const dy = d.target.y - d.source.y
+          const dr = Math.sqrt(dx * dx + dy * dy)
+          const midX = (d.source.x + d.target.x) / 2
+          const offsetX = -dy / dr * d.curveOffset * 0.5
+          return midX + offsetX
+        }
+        return (d.source.x + d.target.x) / 2
+      })
+      .attr('y', (d: any) => {
+        if (d.isMultiple && d.curveOffset !== 0) {
+          const dx = d.target.x - d.source.x
+          const dy = d.target.y - d.source.y
+          const dr = Math.sqrt(dx * dx + dy * dy)
+          const midY = (d.source.y + d.target.y) / 2
+          const offsetY = dx / dr * d.curveOffset * 0.5
+          return midY + offsetY
+        }
+        return (d.source.y + d.target.y) / 2
+      })
 
     linkLabelBg
       .attr('x', (d: any) => {
-        const labelWidth = `${d.currentBandwidth}/${d.maxBandwidth} Mbps`.length * 5.5
+        let labelText = `${d.currentBandwidth}/${d.maxBandwidth} Mbps`
+        if (d.isMultiple) {
+          const sourcePort = typeof d.originalSource === 'string' ? d.originalSource : d.originalSource.id
+          const targetPort = typeof d.originalTarget === 'string' ? d.originalTarget : d.originalTarget.id
+          labelText = `${d.currentBandwidth}/${d.maxBandwidth} Mbps (${sourcePort.split('-').pop()} → ${targetPort.split('-').pop()})`
+        }
+        const labelWidth = labelText.length * 5.5
+        if (d.isMultiple && d.curveOffset !== 0) {
+          const dx = d.target.x - d.source.x
+          const dy = d.target.y - d.source.y
+          const dr = Math.sqrt(dx * dx + dy * dy)
+          const midX = (d.source.x + d.target.x) / 2
+          const offsetX = -dy / dr * d.curveOffset * 0.5
+          return midX + offsetX - labelWidth / 2
+        }
         return (d.source.x + d.target.x) / 2 - labelWidth / 2
       })
-      .attr('y', (d: any) => (d.source.y + d.target.y) / 2 - 15)
-      .attr('width', (d: any) => `${d.currentBandwidth}/${d.maxBandwidth} Mbps`.length * 5.5)
+      .attr('y', (d: any) => {
+        if (d.isMultiple && d.curveOffset !== 0) {
+          const dx = d.target.x - d.source.x
+          const dy = d.target.y - d.source.y
+          const dr = Math.sqrt(dx * dx + dy * dy)
+          const midY = (d.source.y + d.target.y) / 2
+          const offsetY = dx / dr * d.curveOffset * 0.5
+          return midY + offsetY - 15
+        }
+        return (d.source.y + d.target.y) / 2 - 15
+      })
+      .attr('width', (d: any) => {
+        let labelText = `${d.currentBandwidth}/${d.maxBandwidth} Mbps`
+        if (d.isMultiple) {
+          const sourcePort = typeof d.originalSource === 'string' ? d.originalSource : d.originalSource.id
+          const targetPort = typeof d.originalTarget === 'string' ? d.originalTarget : d.originalTarget.id
+          labelText = `${d.currentBandwidth}/${d.maxBandwidth} Mbps (${sourcePort.split('-').pop()} → ${targetPort.split('-').pop()})`
+        }
+        return labelText.length * 5.5
+      })
       .attr('height', 16)
 
     node.attr('transform', (d: any) => `translate(${d.x},${d.y})`)
