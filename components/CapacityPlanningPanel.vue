@@ -59,7 +59,7 @@
     <div v-if="capacityAnalysis.length > 0">
       <div class="flex items-center gap-2 mb-3">
         <UIcon name="i-heroicons-chart-pie" class="w-4 h-4 text-primary-500" />
-        <h4 class="font-bold text-sm border-b pb-1 flex-1">Resultados del Análisis</h4>
+        <h4 class="font-bold text-sm border-b pb-1 flex-1 text-gray-400">Resultados del Análisis</h4>
       </div>
 
       <div class="max-h-48 overflow-y-auto space-y-2">
@@ -75,7 +75,7 @@
         >
           <div class="space-y-1">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-medium">{{ analysis.routeName }}</span>
+              <span class="text-xs font-medium  text-gray-300">{{ analysis.routeName }}</span>
               <UBadge
                 :color="analysis.feasible && !analysis.needsUpgrade ? 'success' : analysis.needsUpgrade ? 'warning' : 'error'"
                 variant="subtle"
