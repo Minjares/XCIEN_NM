@@ -22,6 +22,6 @@ export interface Link {
   target: string | Port;
   type: 'fiber' | 'microwave';
   maxBandwidth: number;
-  currentBandwidth: number;
-  value?: number; // For D3.js compatibility
+  currentBandwidth: number; 
+  value?: number; 
 }

@@ -1,12 +1,42 @@
 <template>
   <div class="relative bg-gray-50 border border-gray-300 rounded-lg h-[600px]">
-    <svg ref="svgRef" class="w-full h-full"></svg>
+    <svg ref="svgRef" class="w-full h-full cursor-grab"></svg>
+
+    <!-- Zoom Controls -->
+    <div class="absolute top-4 right-4 flex flex-col gap-2 bg-white rounded-lg shadow-lg p-2">
+      <UButton
+        icon="i-heroicons-plus"
+        size="sm"
+        variant="outline"
+        @click="zoomIn"
+        title="Zoom In (Ctrl/Cmd + +)"
+      />
+      <UButton
+        icon="i-heroicons-minus"
+        size="sm"
+        variant="outline"
+        @click="zoomOut"
+        title="Zoom Out (Ctrl/Cmd + -)"
+      />
+      <UButton
+        icon="i-heroicons-arrow-path"
+        size="sm"
+        variant="outline"
+        @click="resetZoom"
+        title="Reset View (Ctrl/Cmd + 0)"
+      />
+    </div>
+
+    <!-- Zoom Level Indicator -->
+    <div class="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg px-3 py-1 text-sm text-gray-600">
+      Zoom: {{ Math.round(currentZoom * 100) }}%
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import * as d3 from 'd3'
-import type { Port, Node, Link } from '~/types/network'
+import type { Node, Link } from '~/types/network'
 
 interface Props {
   nodes: Node[]
@@ -23,6 +53,13 @@ const emit = defineEmits<{
 
 const svgRef = ref<SVGElement | null>(null)
 let simulation: any = null
+let zoomBehavior: any = null
+let svgGroup: any = null
+
+// Zoom state
+const currentZoom = ref(1)
+const minZoom = 0.1
+const maxZoom = 5
 
 // Watch for changes in nodes/links to re-render
 watch([() => props.nodes, () => props.links], () => {
@@ -34,10 +71,69 @@ watch(() => props.selectedNode, () => {
   updateNodeHighlighting()
 })
 
+// Zoom control functions
+const zoomIn = () => {
+  if (zoomBehavior && svgRef.value) {
+    const svg = d3.select(svgRef.value)
+    svg.transition().duration(300).call(
+      zoomBehavior.scaleBy, 1.5
+    )
+  }
+}
+
+const zoomOut = () => {
+  if (zoomBehavior && svgRef.value) {
+    const svg = d3.select(svgRef.value)
+    svg.transition().duration(300).call(
+      zoomBehavior.scaleBy, 1 / 1.5
+    )
+  }
+}
+
+const resetZoom = () => {
+  if (zoomBehavior && svgRef.value) {
+    const svg = d3.select(svgRef.value)
+
+    svg.transition().duration(500).call(
+      zoomBehavior.transform,
+      d3.zoomIdentity.translate(0, 0).scale(1)
+    )
+  }
+}
+
+// Keyboard shortcuts for zoom
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.ctrlKey || event.metaKey) {
+    switch (event.key) {
+      case '=':
+      case '+':
+        event.preventDefault()
+        zoomIn()
+        break
+      case '-':
+        event.preventDefault()
+        zoomOut()
+        break
+      case '0':
+        event.preventDefault()
+        resetZoom()
+        break
+    }
+  }
+}
+
 onMounted(() => {
   setTimeout(() => {
     renderGraph()
   }, 100)
+
+  // Add keyboard event listeners
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  // Clean up event listeners
+  document.removeEventListener('keydown', handleKeydown)
 })
 
 // Helper function to get node ID from port ID
@@ -108,8 +204,24 @@ const renderGraph = () => {
 
   console.log('NetworkGraph dimensions', { width, height })
 
-  // Create a group for the graph
-  const g = svg.append('g')
+  // Create a group for the graph that will be transformed by zoom
+  svgGroup = svg.append('g')
+  const g = svgGroup
+
+  // Create zoom behavior
+  zoomBehavior = d3.zoom()
+    .scaleExtent([minZoom, maxZoom])
+    .on('zoom', (event) => {
+      const { transform } = event
+      g.attr('transform', transform)
+      currentZoom.value = transform.k
+    })
+
+  // Apply zoom behavior to SVG
+  svg.call(zoomBehavior)
+
+  // Prevent zoom on double-click (we want to use it for node selection)
+  svg.on('dblclick.zoom', null)
 
   // Define node colors based on type
   const nodeColor = (d: Node) => {
@@ -207,6 +319,7 @@ const renderGraph = () => {
 
   // Add shapes to nodes
   node.each(function(d: Node) {
+    // @ts-ignore
     const element = d3.select(this)
     if (d.type === 'isp') {
       element.append('circle')
@@ -237,8 +350,10 @@ const renderGraph = () => {
     .text((d: Node) => d.name)
     .attr('font-size', '12px')
 
-  // Add click handler to clear selection
-  svg.on('click', () => {
+  // Add click handler to clear selection (but not interfere with zoom)
+  svg.on('click', (event) => {
+    // Only emit deselection if we're not in the middle of a zoom/pan operation
+    if (event.defaultPrevented) return
     emit('node-deselected')
   })
 

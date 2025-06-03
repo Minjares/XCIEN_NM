@@ -11,7 +11,7 @@
         variant="soft"
         @click="refreshData"
       >
-        Actualizar
+        Actualizar 
       </UButton>
     </div>
 

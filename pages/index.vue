@@ -1,6 +1,12 @@
 <template>
   <UContainer class="py-8">
-    <NetworkHeader @refresh="refreshTopology" />
+    
+    <NetworkHeader
+      :is-refreshing-bandwidth="isRefreshingBandwidth"
+      :refresh-progress="refreshProgress"
+      :refresh-errors="refreshErrors"
+      @refresh-bandwidth="refreshBandwidthData"
+    />
 
     <NetworkStatsGrid :nodes="nodes" :links="links" />
 
@@ -8,7 +14,6 @@
       :tabs="topologyTabs"
       v-model="activeTab"
       :nodes="nodes"
-      :links="links"
       @tab-change="handleTabChange"
     />
 
@@ -50,8 +55,13 @@ const {
   links,
   activeTab,
   topologyTabs,
+  isLoading,
   handleTabChange,
   refreshTopology,
+  refreshBandwidthData,
+  isRefreshingBandwidth,
+  refreshProgress,
+  refreshErrors,
   getLinkBandwidth,
   ispNodes,
   initialize,
@@ -81,15 +91,14 @@ const handleCalculateCapacityPlan = () => {
   }
 }
 
-// Provide getLinkBandwidth function to child components
+
 provide('getLinkBandwidth', getLinkBandwidth)
 
-// Initialize with San Luis topology
-onMounted(() => {
+onMounted(async () => {
   console.log("Component mounted")
-  setTimeout(() => {
-    initialize()
-  }, 100) // Small delay to ensure DOM is ready
+  setTimeout(async () => {
+    await initialize()
+  }, 100) 
 })
 
 

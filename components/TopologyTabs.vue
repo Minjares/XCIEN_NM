@@ -1,23 +1,17 @@
 <template>
-  <div class="mb-6 p-4 bg-gray-100 rounded-lg">
+  <div class="mb-6 p-4 rounded-lg">
     <UTabs
       :items="tabs"
       :model-value="modelValue"
       @update:model-value="handleTabChange"
     >
-      <template #item="{ item }">
-        <div class="p-4">
-          <p class="text-sm text-gray-600 mb-2">{{ item.description }}</p>
-          <div class="text-sm text-gray-600">
-            <p>Nodes: {{ nodes.length }} | Links: {{ links.length }}</p>
-          </div>
-        </div>
-      </template>
+      
     </UTabs>
   </div>
 </template>
 
 <script setup lang="ts">
+
 interface TopologyTab {
   id: string
   label: string
@@ -44,8 +38,6 @@ interface Link {
 interface Props {
   tabs: TopologyTab[]
   modelValue: string
-  nodes: Node[]
-  links: Link[]
 }
 
 defineProps<Props>()

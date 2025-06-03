@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, varchar, pgEnum, integer, timestamp, text, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, varchar, pgEnum, integer, timestamp, boolean } from 'drizzle-orm/pg-core';
 
 export const nodeTypeEnum = pgEnum('node_type', ['router', 'switch', 'isp']);
 export const portStatusEnum = pgEnum('port_status', ['active', 'inactive', 'error']);
