@@ -223,12 +223,12 @@ const renderGraph = () => {
   // Prevent zoom on double-click (we want to use it for node selection)
   svg.on('dblclick.zoom', null)
 
-  // Define node colors based on type
-  const nodeColor = (d: Node) => {
-    if (d.type === 'router') return '#ff6b6b'
-    if (d.type === 'switch') return '#4ecdc4'
-    if (d.type === 'isp') return '#ffd166'
-    return '#aaa'
+  // Define node images based on type
+  const getNodeImage = (d: Node) => {
+    if (d.type === 'router') return '/router.png'
+    if (d.type === 'switch') return '/switch.png'
+    if (d.type === 'isp') return '/isp.png'
+    return '/router.png' // fallback
   }
 
   // Create simulation with proper node data
@@ -317,30 +317,30 @@ const renderGraph = () => {
       .on('drag', dragged)
       .on('end', dragEnded))
 
-  // Add shapes to nodes
+  // Add images to nodes
   node.each(function(d: Node) {
     // @ts-ignore
     const element = d3.select(this)
-    if (d.type === 'isp') {
-      element.append('circle')
-        .attr('r', 15)
-        .attr('fill', nodeColor(d))
-        .attr('stroke', '#fff')
-        .attr('stroke-width', 2)
 
-      element.append('text')
-        .attr('text-anchor', 'middle')
-        .attr('dy', '0.3em')
-        .attr('font-size', '10px')
-        .attr('font-weight', 'bold')
-        .text('ISP')
-    } else {
-      element.append('circle')
-        .attr('r', 15)
-        .attr('fill', nodeColor(d))
-        .attr('stroke', '#fff')
-        .attr('stroke-width', 2)
-    }
+    // Add selection circle (initially hidden)
+    element.append('circle')
+      .attr('r', 20)
+      .attr('fill', 'none')
+      .attr('stroke', '#333')
+      .attr('stroke-width', 3)
+      .attr('stroke-dasharray', '5,5')
+      .attr('class', 'selection-circle')
+      .style('opacity', 0)
+
+    // Add image for all node types
+    element.append('image')
+      .attr('href', getNodeImage(d))
+      .attr('x', -15)
+      .attr('y', -15)
+      .attr('width', 30)
+      .attr('height', 30)
+      .attr('class', 'node-image')
+      .style('cursor', 'pointer')
   })
 
   // Add labels to nodes
@@ -480,12 +480,9 @@ const updateNodeHighlighting = () => {
   if (!svgRef.value) return
 
   d3.select(svgRef.value)
-    .selectAll('.node circle')
-    .attr('stroke', (d: any) => {
-      return props.selectedNode && d.id === props.selectedNode.id ? '#333' : '#fff'
-    })
-    .attr('stroke-width', (d: any) => {
-      return props.selectedNode && d.id === props.selectedNode.id ? 3 : 2
+    .selectAll('.selection-circle')
+    .style('opacity', (d: any) => {
+      return props.selectedNode && d.id === props.selectedNode.id ? 1 : 0
     })
 }
 </script>

@@ -1,13 +1,12 @@
 <template>
   <UCard
-    :ui="{ body: { base: 'p-5' } }"
     class="hover:shadow-lg transition-shadow duration-200 border-t-4"
     :class="borderColorClass"
   >
     <div class="flex items-center justify-between">
       <div>
-        <div class="text-sm text-gray-500 mb-2">{{ title }}</div>
-        <div class="text-xl font-semibold flex items-center gap-2">
+        <div class="text-sm text-gray-200 font-semibold mb-2">{{ title }}</div>
+        <div class="text-xl text-gray-300 font-semibold flex items-center gap-2">
           {{ value }}
         </div>
       </div>

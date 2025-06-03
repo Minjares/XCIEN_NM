@@ -21,7 +21,7 @@ export const useNetworkTopology = () => {
     isRefreshingBandwidth,
     refreshProgress,
     refreshErrors,
-    refreshLinksBandwidth
+    refreshTopologyBandwidth
   } = useNetworkBandwidthRefresh()
 
   // Fetch topologies from API
@@ -107,7 +107,7 @@ export const useNetworkTopology = () => {
   }
 
   const refreshBandwidthData = async () => {
-    await refreshLinksBandwidth(links)
+    await refreshTopologyBandwidth(activeTab.value)
   }
 
   // Get link bandwidth information between two nodes

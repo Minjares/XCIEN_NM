@@ -37,12 +37,6 @@ const route = useRoute();
 
 const navigationItems = computed<NavigationMenuItem[]>(() => [
   {
-    label: 'Dashboard',
-    icon: 'i-heroicons-chart-bar',
-    to: '/dashboard',
-    active: route.path === '/dashboard'
-  },
-  {
     label: 'Nodos',
     icon: 'i-heroicons-server',
     to: '/',

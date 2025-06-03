@@ -1,8 +1,8 @@
 <template>
   <div class="flex items-center justify-between mb-8">
     <div>
-      <h1 class="text-3xl font-bold">Gráfico de Red</h1>
-      <p class="text-gray-500 mt-1">Diseño y gestión de la topología de red</p>
+      <h1 class="text-3xl font-bold text-white">Gráfico de Red</h1>
+      <p class="text-gray-400 mt-1">Diseño y gestión de la topología de red</p>
     </div>
     <div class="flex items-center gap-4">
       <!-- Progress indicator for bandwidth refresh -->
@@ -35,7 +35,7 @@
 interface Props {
   isRefreshingBandwidth?: boolean
   refreshProgress?: number
-  refreshErrors?: string[]
+  refreshErrors?: readonly string[]
 }
 
 withDefaults(defineProps<Props>(), {

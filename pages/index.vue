@@ -5,7 +5,7 @@
       :is-refreshing-bandwidth="isRefreshingBandwidth"
       :refresh-progress="refreshProgress"
       :refresh-errors="refreshErrors"
-      @refresh-bandwidth="refreshBandwidthData"
+      @refresh-bandwidth="handleBandwidthRefresh"
     />
 
     <NetworkStatsGrid :nodes="nodes" :links="links" />
@@ -55,9 +55,7 @@ const {
   links,
   activeTab,
   topologyTabs,
-  isLoading,
   handleTabChange,
-  refreshTopology,
   refreshBandwidthData,
   isRefreshingBandwidth,
   refreshProgress,
@@ -65,9 +63,7 @@ const {
   getLinkBandwidth,
   ispNodes,
   initialize,
-  getPortConnections,
-  getConnectedDevices,
-  findDetailedPathBetweenNodes
+  getPortConnections
 } = useNetworkTopology()
 
 const {
@@ -91,6 +87,10 @@ const handleCalculateCapacityPlan = () => {
   }
 }
 
+// Handler for bandwidth refresh
+const handleBandwidthRefresh = async () => {
+  await refreshBandwidthData()
+}
 
 provide('getLinkBandwidth', getLinkBandwidth)
 
