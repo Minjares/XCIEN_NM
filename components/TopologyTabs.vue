@@ -3,7 +3,7 @@
     <UTabs
       :items="tabs"
       :model-value="modelValue"
-      @update:model-value="$emit('update:modelValue', $event); $emit('tab-change', $event)"
+      @update:model-value="handleTabChange"
     >
       <template #item="{ item }">
         <div class="p-4">
@@ -21,6 +21,7 @@
 interface TopologyTab {
   id: string
   label: string
+  value: string
   description: string
   icon: string
 }
@@ -49,8 +50,14 @@ interface Props {
 
 defineProps<Props>()
 
-defineEmits<{
+const emit = defineEmits<{
   'update:modelValue': [value: string]
   'tab-change': [tabId: string]
 }>()
+
+const handleTabChange = (value: string | number) => {
+  const stringValue = String(value)
+  emit('update:modelValue', stringValue)
+  emit('tab-change', stringValue)
+}
 </script>
