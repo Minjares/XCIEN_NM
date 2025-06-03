@@ -39,6 +39,7 @@
       @update:new-node-capacity="newNodeCapacity = $event"
       @calculate-capacity="handleCalculateCapacityPlan"
       @select-node="selectNode"
+      @close="selectedNode = null"
     />
   </UContainer>
 </template>

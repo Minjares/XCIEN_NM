@@ -1,15 +1,25 @@
 <template>
-  <UCard class="absolute top-4 right-4 w-80 z-10 shadow-xl">
+  <UCard class="fixed right-4 top-1/2 transform -translate-y-1/2 w-80 z-50 shadow-xl max-h-[90vh] overflow-y-auto">
     <template #header>
       <div class="flex justify-between items-center">
-        <div class="font-bold text-lg text-gray-800 dark:text-gray-200">{{ selectedNode.name }}</div>
-        <UBadge
-          :color="selectedNode.type === 'router' ? 'error' : selectedNode.type === 'switch' ? 'info' : 'warning'"
-          variant="subtle"
-          size="sm"
-        >
-          {{ selectedNode.type.charAt(0).toUpperCase() + selectedNode.type.slice(1) }}
-        </UBadge>
+        <div class="flex items-center gap-2">
+          <div class="font-bold text-lg text-gray-800 dark:text-gray-200">{{ selectedNode.name }}</div>
+          <UBadge
+            :color="selectedNode.type === 'router' ? 'error' : selectedNode.type === 'switch' ? 'info' : 'warning'"
+            variant="subtle"
+            size="sm"
+          >
+            {{ selectedNode.type.charAt(0).toUpperCase() + selectedNode.type.slice(1) }}
+          </UBadge>
+        </div>
+        <UButton
+          icon="i-heroicons-x-mark"
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          @click="emit('close')"
+          title="Cerrar panel"
+        />
       </div>
     </template>
 
@@ -184,6 +194,7 @@ const emit = defineEmits<{
   'update:newNodeCapacity': [value: number]
   'calculateCapacity': []
   'selectNode': [node: Node]
+  'close': []
 }>()
 
 // Computed property for port connections
