@@ -85,7 +85,7 @@ export const useNetworkTopology = () => {
         name: 'Core MTP Guerrero',
         type: 'router',
         Ports: [
-          { id: 'router6-port1', name: 'GigabitEthernet0/0', status: 'active', deviceId: '9116' }
+          { id: 'router6-port1_pn', name: 'GigabitEthernet0/0', status: 'active', deviceId: '9116' }
         ]
       },
       {
@@ -113,79 +113,79 @@ export const useNetworkTopology = () => {
         type: 'switch',
         Ports: [
           { id: '33877', name: 'PTP:B5C_Apolo', status: 'active', deviceId: '1432' },
-          { id: 'switch1-port2', name: 'GigabitEthernet1/0/2', status: 'active', deviceId: '1432' },
+          { id: 'switch1-port2_pn', name: 'GigabitEthernet1/0/2', status: 'active', deviceId: '1432' },
         ]
       },
       {
-        id: 'switch2',
+        id: 'switch2_pn',
         name: 'SW PoE San Carlos',
         type: 'switch',
         Ports: [
-          { id: 'switch2-port1', name: 'GigabitEthernet1/0/1', status: 'active', deviceId: 'switch2' },
-          { id: 'switch2-port2', name: 'GigabitEthernet1/0/2', status: 'active', deviceId: 'switch2' }
+          { id: 'switch2-port1_pn', name: 'GigabitEthernet1/0/1', status: 'active', deviceId: 'switch2_pn' },
+          { id: 'switch2-port2_pn', name: 'GigabitEthernet1/0/2', status: 'active', deviceId: 'switch2_pn' }
         ]
       },
       {
-        id: 'switch3',
+        id: 'switch3_pn',
         name: 'SW RB2011 Sispa',
         type: 'switch',
         Ports: [
-          { id: 'switch3-port1', name: 'ether1', status: 'active', deviceId: 'switch3' },
-          { id: 'switch3-port2', name: 'ether2', status: 'active', deviceId: 'switch3' }
+          { id: 'switch3-port1_pn', name: 'ether1', status: 'active', deviceId: 'switch3_pn' },
+          { id: 'switch3-port2_pn', name: 'ether2', status: 'active', deviceId: 'switch3_pn' }
         ]
       },
       {
-        id: 'switch4',
+        id: 'switch4_pn',
         name: 'SW PoE PDN',
         type: 'switch',
         Ports: [
-          { id: 'switch4-port1', name: 'GigabitEthernet1/0/1', status: 'active', deviceId: 'switch4' },
-          { id: 'switch4-port2', name: 'GigabitEthernet1/0/2', status: 'active', deviceId: 'switch4' },
-          { id: 'switch4-port3', name: 'GigabitEthernet1/0/3', status: 'active', deviceId: 'switch4' }
+          { id: 'switch4-port1_pn', name: 'GigabitEthernet1/0/1', status: 'active', deviceId: 'switch4_pn' },
+          { id: 'switch4-port2_pn', name: 'GigabitEthernet1/0/2', status: 'active', deviceId: 'switch4_pn' },
+          { id: 'switch4-port3_pn', name: 'GigabitEthernet1/0/3', status: 'active', deviceId: 'switch4_pn' }
         ]
       },
       {
-        id: 'isp1',
+        id: 'isp1_pn',
         name: 'Carrier Fibranet',
         type: 'isp',
         Ports: [
-          { id: 'isp1-port1', name: 'WAN Interface', status: 'active', deviceId: 'isp1' }
+          { id: 'isp1-port1_pn', name: 'WAN Interface', status: 'active', deviceId: 'isp1_pn' }
         ]
       },
       {
-        id: 'isp2',
+        id: 'isp2_pn',
         name: 'Carrier Movistar',
         type: 'isp',
         Ports: [
-          { id: 'isp2-port1', name: 'WAN Interface', status: 'active', deviceId: 'isp2' }
+          { id: 'isp2-port1_pn', name: 'WAN Interface', status: 'active', deviceId: 'isp2_pn' }
         ]
       },
       {
-        id: 'isp3',
+        id: 'isp3_pn',
         name: 'Carrier Fibranet',
         type: 'isp',
         Ports: [
-          { id: 'isp3-port1', name: 'WAN Interface', status: 'active', deviceId: 'isp3' }
+          { id: 'isp3-port1_pn', name: 'WAN Interface', status: 'active', deviceId: 'isp3_pn' }
         ]
       }
     ]
 
     links.value = [
-      { id: 'link1', source: 'isp1-port1', target: '33887', type: 'microwave', maxBandwidth: 500, currentBandwidth: 300, value: 1 },
-      { id: 'link2', source: '33891', target: 'switch1-port2', type: 'microwave', maxBandwidth: 1000, currentBandwidth: 300, value: 1 },
+      { id: 'link1', source: 'isp1-port1_pn', target: '33887', type: 'microwave', maxBandwidth: 500, currentBandwidth: 300, value: 1 },
+      { id: 'link2', source: '33891', target: 'switch1-port2_pn', type: 'microwave', maxBandwidth: 1000, currentBandwidth: 300, value: 1 },
       { id: 'link3', source: '33877', target: '253561', type: 'microwave', maxBandwidth: 720, currentBandwidth: 500, value: 1 },
-      { id: 'link4', source: '253560', target: 'switch2-port1', type: 'microwave', maxBandwidth: 100, currentBandwidth: 20, value: 1 },
-      { id: 'link5', source: 'switch2-port2', target: '238953', type: 'microwave', maxBandwidth: 150, currentBandwidth: 30, value: 1 },
-      { id: 'link6', source: '238952', target: 'switch3-port1', type: 'microwave', maxBandwidth: 210, currentBandwidth: 20, value: 1 },
-      { id: 'link7', source: '238954', target: 'switch4-port1', type: 'microwave', maxBandwidth: 480, currentBandwidth: 200, value: 1 },
-      { id: 'link8', source: '238956', target: 'switch4-port2', type: 'microwave', maxBandwidth: 480, currentBandwidth: 200, value: 1 },
-      { id: 'link9', source: 'switch3-port2', target: '65697', type: 'microwave', maxBandwidth: 180, currentBandwidth: 20, value: 1 },
+      { id: 'link4', source: '253560', target: 'switch2-port1_pn', type: 'microwave', maxBandwidth: 100, currentBandwidth: 20, value: 1 },
+      { id: 'link5', source: 'switch2-port2_pn', target: '238953', type: 'microwave', maxBandwidth: 150, currentBandwidth: 30, value: 1 },
+      { id: 'link6', source: '238952', target: 'switch3-port1_pn', type: 'microwave', maxBandwidth: 210, currentBandwidth: 20, value: 1 },
+      { id: 'link7', source: '238954', target: 'switch4-port1_pn', type: 'microwave', maxBandwidth: 480, currentBandwidth: 200, value: 1 },
+      { id: 'link8', source: '238956', target: 'switch4-port2_pn', type: 'microwave', maxBandwidth: 480, currentBandwidth: 200, value: 1 },
+      { id: 'link9', source: 'switch3-port2_pn', target: '65697', type: 'microwave', maxBandwidth: 180, currentBandwidth: 20, value: 1 },
       { id: 'link10', source: '65701', target: '23878', type: 'microwave', maxBandwidth: 50, currentBandwidth: 5, value: 1 },
-      { id: 'link11', source: '23879', target: 'router6-port1', type: 'microwave', maxBandwidth: 100, currentBandwidth: 20, value: 1 },
-      { id: 'link12', source: 'switch4-port3', target: '106', type: 'microwave', maxBandwidth: 480, currentBandwidth: 200, value: 1 },
+      { id: 'link11', source: '23879', target: 'router6-port1_pn', type: 'microwave', maxBandwidth: 100, currentBandwidth: 20, value: 1 },
+      { id: 'link12', source: 'switch4-port3_pn', target: '106', type: 'microwave', maxBandwidth: 480, currentBandwidth: 200, value: 1 },
       { id: 'link13', source: '107', target: '110784', type: 'microwave', maxBandwidth: 210, currentBandwidth: 20, value: 1 },
-      { id: 'link14', source: '103', target: 'isp2-port1', type: 'microwave', maxBandwidth: 500, currentBandwidth: 200, value: 1 },
-      { id: 'link15', source: '105', target: 'isp3-port1', type: 'microwave', maxBandwidth: 1000, currentBandwidth: 200, value: 1 }
+      { id: 'link14', source: '103', target: 'isp2-port1_pn', type: 'microwave', maxBandwidth: 500, currentBandwidth: 200, value: 1 },
+      { id: 'link15', source: '105', target: 'isp3-port1_pn', type: 'microwave', maxBandwidth: 1000, currentBandwidth: 200, value: 1 }
     ]
   }
 
@@ -251,27 +251,27 @@ const generateSanLuisTopology = () => {
         ]
       },
       {
-        id: 'wrt1',
+        id: 'wrt1_sl',
         name: 'WRT Planta los Matias',
         type: 'router',
         Ports: [
-          { id: 'wrt1-port1', name: 'WAN Interface', status: 'active', deviceId: 'wrt1' },
-          { id: 'wrt1-port2', name: 'WAN Interface', status: 'active', deviceId: 'wrt1' }
+          { id: 'wrt1-port1_sl', name: 'WAN Interface', status: 'active', deviceId: 'wrt1_sl' },
+          { id: 'wrt1-port2_sl', name: 'WAN Interface', status: 'active', deviceId: 'wrt1_sl' }
         ]
       },
       {
-        id: 'isp1',
+        id: 'isp1_sl',
         name: 'Carrier Flo Networks',
         type: 'isp',
         Ports: [
-          { id: 'isp1-port1', name: 'WAN Interface', status: 'active', deviceId: 'isp1' }
+          { id: 'isp1-port1_sl', name: 'WAN Interface', status: 'active', deviceId: 'isp1_sl' }
         ]
       }
     ]
 
     links.value = [
       // ISP Connection
-      { id: 'link1', source: 'isp1-port1', target: '12494', type: 'fiber', maxBandwidth: 700, currentBandwidth: 100, value: 1 },
+      { id: 'link1', source: 'isp1-port1_sl', target: '12494', type: 'fiber', maxBandwidth: 700, currentBandwidth: 100, value: 1 },
 
       // Core Border San Luis to SW PoE Edificio EME
       { id: 'link2', source: '12497', target: '239519', type: 'fiber', maxBandwidth: 1000, currentBandwidth: 200, value: 1 },
@@ -284,8 +284,8 @@ const generateSanLuisTopology = () => {
       { id: 'link5', source: '239528', target: '419996', type: 'fiber', maxBandwidth: 700, currentBandwidth: 200, value: 1 },
 
       // Switch los Matias to WRT Planta los Matias (double connection)
-      { id: 'link6', source: '239491', target: 'wrt1-port1', type: 'microwave', maxBandwidth: 100, currentBandwidth: 50, value: 1 },
-      { id: 'link7', source: '239494', target: 'wrt1-port2', type: 'microwave', maxBandwidth: 100, currentBandwidth: 45, value: 1 },
+      { id: 'link6', source: '239491', target: 'wrt1-port1_sl', type: 'microwave', maxBandwidth: 100, currentBandwidth: 50, value: 1 },
+      { id: 'link7', source: '239494', target: 'wrt1-port2_sl', type: 'microwave', maxBandwidth: 100, currentBandwidth: 45, value: 1 },
 
       // Core Carretera 57 to Core San Antonio TRM2 (double connection)
       { id: 'link8', source: '419990', target: '296613', type: 'microwave', maxBandwidth: 1800, currentBandwidth: 300, value: 1 },

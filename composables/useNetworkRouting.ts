@@ -41,6 +41,90 @@ export const useNetworkRouting = (
       .filter(Boolean) as Node[] // Filter out any undefined nodes
   })
 
+  // Calculate link weight considering connection type, capacity, and usage
+  const calculateLinkWeight = (link: Link): number => {
+    // Base weight (hop count factor)
+    let weight = 1.0
+
+    // Connection type multiplier (fiber is best, microwave is standard)
+    const connectionTypeMultiplier: Record<string, number> = {
+      'fiber': 0.8,      // Fiber is 20% better than base
+      'microwave': 1.0,  // Microwave is the baseline
+      'ethernet': 0.9,   // Ethernet is 10% better than microwave
+      'wireless': 1.2,   // Wireless is 20% worse than baseline
+      'satellite': 1.5   // Satellite is 50% worse than baseline
+    }
+
+    const typeMultiplier = connectionTypeMultiplier[link.type] || 1.0
+    weight *= typeMultiplier
+
+    // Bandwidth usage factor (higher usage = higher weight)
+    if (link.maxBandwidth && link.currentBandwidth !== undefined) {
+      const usageRatio = link.currentBandwidth / link.maxBandwidth
+      const availableCapacityRatio = 1 - usageRatio
+
+      // Heavily penalize links with low available capacity
+      if (availableCapacityRatio < 0.1) {
+        // Less than 10% capacity available - very high penalty
+        weight *= 3.0
+      } else if (availableCapacityRatio < 0.3) {
+        // Less than 30% capacity available - high penalty
+        weight *= 2.0
+      } else if (availableCapacityRatio < 0.5) {
+        // Less than 50% capacity available - moderate penalty
+        weight *= 1.5
+      } else if (availableCapacityRatio > 0.8) {
+        // More than 80% capacity available - bonus
+        weight *= 0.9
+      }
+
+      // Additional usage penalty (gradual increase with usage)
+      weight += usageRatio * 0.5
+    }
+
+    // Capacity bonus - higher capacity links get slight preference
+    if (link.maxBandwidth) {
+      if (link.maxBandwidth >= 1000) {
+        weight *= 0.95  // 5% bonus for high capacity links (1Gbps+)
+      } else if (link.maxBandwidth >= 500) {
+        weight *= 0.98  // 2% bonus for medium-high capacity links (500Mbps+)
+      } else if (link.maxBandwidth < 100) {
+        weight *= 1.1   // 10% penalty for low capacity links (<100Mbps)
+      }
+    }
+
+    return weight
+  }
+
+  // Calculate comprehensive path metric considering all links in the path
+  const calculatePathMetric = (path: string[]): number => {
+    // Base metric is hop count
+    let metric = path.length - 1
+
+    // Add weight factors for each link in the path
+    for (let i = 0; i < path.length - 1; i++) {
+      const sourceId = path[i]
+      const targetId = path[i + 1]
+
+      // Find the link between these nodes
+      const link = links.value.find(link => {
+        const linkSourceId = typeof link.source === 'object' ? link.source.id : link.source
+        const linkTargetId = typeof link.target === 'object' ? link.target.id : link.target
+        return (linkSourceId === sourceId && linkTargetId === targetId) ||
+               (linkSourceId === targetId && linkTargetId === sourceId)
+      })
+
+      if (link) {
+        // Get the enhanced weight for this link
+        const linkWeight = calculateLinkWeight(link)
+        // Add the weight factor to the metric (subtract 1 to avoid double-counting the base hop)
+        metric += (linkWeight - 1) * 2 // Multiply by 2 to give more weight to link quality
+      }
+    }
+
+    return metric
+  }
+
   // Calculate the best path to an ISP using Dijkstra's algorithm
   const findBestPathToISP = (startNodeId: string, ispId: string): string[] | null => {
     // Initialize distances with infinity for all nodes except the start node
@@ -79,11 +163,10 @@ export const useNetworkRouting = (
         const targetId = typeof link.target === 'object' ? link.target.id : link.target
 
         if (sourceId === current && unvisited.has(targetId)) {
-          // Calculate weight based on bandwidth usage (higher usage = higher weight)
-          const weight = link.currentBandwidth ? 1 + (link.currentBandwidth / (link.maxBandwidth || 1)) : 1
+          const weight = calculateLinkWeight(link)
           neighbors.push({ id: targetId, weight })
         } else if (targetId === current && unvisited.has(sourceId)) {
-          const weight = link.currentBandwidth ? 1 + (link.currentBandwidth / (link.maxBandwidth || 1)) : 1
+          const weight = calculateLinkWeight(link)
           neighbors.push({ id: sourceId, weight })
         }
       })
@@ -149,23 +232,8 @@ export const useNetworkRouting = (
 
       if (!nextHopNode) return
 
-      // Find the link between current node and next hop
-      const link = links.value.find(link => {
-        const sourceId = typeof link.source === 'object' ? link.source.id : link.source
-        const targetId = typeof link.target === 'object' ? link.target.id : link.target
-        return (sourceId === node.id && targetId === nextHopId) ||
-               (sourceId === nextHopId && targetId === node.id)
-      })
-
-      // Calculate metric based on path length and bandwidth usage
-      let metric = path.length - 1 // Base metric is hop count
-
-      // Add bandwidth factor if available
-      if (link && link.maxBandwidth && link.currentBandwidth) {
-        const usageRatio = link.currentBandwidth / link.maxBandwidth
-        // Higher bandwidth usage increases the metric
-        metric += usageRatio * 5
-      }
+      // Calculate comprehensive metric based on entire path
+      let metric = calculatePathMetric(path)
 
       // Create the route entry
       routes.value.push({

@@ -83,6 +83,60 @@ export const useCapacityPlanning = (
     return null // No path found
   }
 
+  // Calculate link quality cost based on connection type, capacity, and usage
+  const calculateLinkQualityCost = (link: Link): number => {
+    // Base cost per hop
+    let cost = 10
+
+    // Connection type cost modifier (fiber is cheaper to use, satellite is expensive)
+    const connectionTypeCostMultiplier: Record<string, number> = {
+      'fiber': 0.8,      // Fiber is 20% cheaper to use
+      'microwave': 1.0,  // Microwave is the baseline
+      'ethernet': 0.9,   // Ethernet is 10% cheaper than microwave
+      'wireless': 1.3,   // Wireless is 30% more expensive
+      'satellite': 2.0   // Satellite is 100% more expensive
+    }
+
+    const typeMultiplier = connectionTypeCostMultiplier[link.type] || 1.0
+    cost *= typeMultiplier
+
+    // Capacity-based cost (higher capacity links cost more to use)
+    if (link.maxBandwidth) {
+      if (link.maxBandwidth >= 1000) {
+        cost *= 1.2  // 20% premium for high capacity links (1Gbps+)
+      } else if (link.maxBandwidth >= 500) {
+        cost *= 1.1  // 10% premium for medium-high capacity links (500Mbps+)
+      } else if (link.maxBandwidth < 100) {
+        cost *= 0.8  // 20% discount for low capacity links (<100Mbps)
+      }
+    }
+
+    // Usage-based cost penalty (congested links are more expensive to use)
+    if (link.maxBandwidth && link.currentBandwidth !== undefined) {
+      const usageRatio = link.currentBandwidth / link.maxBandwidth
+      const availableCapacityRatio = 1 - usageRatio
+
+      if (availableCapacityRatio < 0.1) {
+        // Less than 10% capacity available - very high cost penalty
+        cost *= 3.0
+      } else if (availableCapacityRatio < 0.3) {
+        // Less than 30% capacity available - high cost penalty
+        cost *= 2.0
+      } else if (availableCapacityRatio < 0.5) {
+        // Less than 50% capacity available - moderate cost penalty
+        cost *= 1.5
+      } else if (availableCapacityRatio > 0.8) {
+        // More than 80% capacity available - cost bonus
+        cost *= 0.9
+      }
+
+      // Additional gradual usage penalty
+      cost += usageRatio * 5
+    }
+
+    return Math.round(cost)
+  }
+
   // Calculate upgrade cost based on capacity increase
   const calculateUpgradeCost = (currentCapacity: number, newCapacity: number) => {
     const increase = newCapacity - currentCapacity
@@ -179,8 +233,9 @@ export const useCapacityPlanning = (
         })
       }
 
-      // Base cost for using this path (distance/hop cost)
-      totalCost += 10 // Base cost per hop
+      // Enhanced cost calculation based on link quality
+      const linkQualityCost = calculateLinkQualityCost(link)
+      totalCost += linkQualityCost
     }
 
     // Add cost for the new connection itself (from selected node to connection point)
@@ -267,8 +322,9 @@ export const useCapacityPlanning = (
         })
       }
 
-      // Base cost for using this path (distance/hop cost)
-      totalCost += 10 // Base cost per hop
+      // Enhanced cost calculation based on link quality
+      const linkQualityCost = calculateLinkQualityCost(link)
+      totalCost += linkQualityCost
     }
 
     // Add cost for the new connection itself
