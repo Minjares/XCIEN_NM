@@ -1,4 +1,4 @@
-import type { Node, Link } from './useNetworkTopology'
+import type { Node, Link } from '~/types/network'
 
 export interface CapacityAnalysis {
   routeName: string

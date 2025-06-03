@@ -1,26 +1,4 @@
-export interface Port {
-  id: string
-  name: string
-  status: 'active' | 'inactive' | 'error'
-  deviceId: string
-}
-
-export interface Node {
-  id: string
-  name: string
-  type: 'router' | 'switch' | 'isp'
-  Ports: Port[]
-}
-
-export interface Link {
-  id: string
-  source: string | Port
-  target: string | Port
-  type: 'fiber' | 'microwave'
-  maxBandwidth: number
-  currentBandwidth: number
-  value?: number // Keep for D3 compatibility
-}
+import type { Port, Node, Link } from '~/types/network'
 
 export interface TopologyTab {
   id: string
@@ -49,11 +27,11 @@ export const useNetworkTopology = () => {
     },
   ]
 
-  const generateSanLuisTopology = () => {
+  const generatePiedrasNegrasTopology = () => {
     console.log("Generating San Luis topology")
     nodes.value = [
       {
-        id: 'router1',
+        id: '1433',
         name: 'Core Acuña',
         type: 'router',
         Ports: [
@@ -211,7 +189,7 @@ export const useNetworkTopology = () => {
     ]
   }
 
-  const generatePiedrasNegrasTopology = () => {
+  const generateSanLuisTopology = () => {
     console.log("Generating Piedras Negras topology")
     nodes.value = [
       {

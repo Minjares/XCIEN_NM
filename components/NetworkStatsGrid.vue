@@ -38,20 +38,7 @@
 </template>
 
 <script setup lang="ts">
-interface Node {
-  id: string
-  name: string
-  type: 'router' | 'switch' | 'isp'
-}
-
-interface Link {
-  id: string
-  source: string | Node
-  target: string | Node
-  value: number
-  maxBandwidth?: number
-  currentBandwidth?: number
-}
+import type { Node, Link } from '~/types/network'
 
 interface Props {
   nodes: Node[]
@@ -60,15 +47,15 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const routerCount = computed(() => 
-  props.nodes.filter(n => n.type === 'router').length
+const routerCount = computed(() =>
+  props.nodes.filter((n: Node) => n.type === 'router').length
 )
 
-const switchCount = computed(() => 
-  props.nodes.filter(n => n.type === 'switch').length
+const switchCount = computed(() =>
+  props.nodes.filter((n: Node) => n.type === 'switch').length
 )
 
-const ispCount = computed(() => 
-  props.nodes.filter(n => n.type === 'isp').length
+const ispCount = computed(() =>
+  props.nodes.filter((n: Node) => n.type === 'isp').length
 )
 </script>

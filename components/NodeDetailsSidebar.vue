@@ -146,19 +146,7 @@
 </template>
 
 <script setup lang="ts">
-interface Port {
-  id: string
-  name: string
-  status: 'active' | 'inactive' | 'error'
-  deviceId: string
-}
-
-interface Node {
-  id: string
-  name: string
-  type: 'router' | 'switch' | 'isp'
-  Ports: Port[]
-}
+import type { Port, Node } from '~/types/network'
 
 interface CapacityAnalysis {
   routeName: string

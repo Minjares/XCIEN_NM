@@ -17,12 +17,13 @@ export interface Node extends SimulationNodeDatum {
 }
 
 export interface Link {
-  type: 'fiber' | 'microwave';
   id: string;
   source: string | Port;
   target: string | Port;
+  type: 'fiber' | 'microwave';
   maxBandwidth: number;
   currentBandwidth: number;
+  value?: number; // For D3.js compatibility
 }
 
 // Graph data structure

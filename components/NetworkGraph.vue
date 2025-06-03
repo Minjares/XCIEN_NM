@@ -6,34 +6,7 @@
 
 <script setup lang="ts">
 import * as d3 from 'd3'
-
-interface Port {
-  id: string
-  name: string
-  status: 'active' | 'inactive' | 'error'
-  deviceId: string
-}
-
-interface Node {
-  id: string
-  name: string
-  type: 'router' | 'switch' | 'isp'
-  Ports: Port[]
-  x?: number
-  y?: number
-  fx?: number | null
-  fy?: number | null
-}
-
-interface Link {
-  id: string
-  source: string | Port
-  target: string | Port
-  type: 'fiber' | 'microwave'
-  maxBandwidth: number
-  currentBandwidth: number
-  value?: number
-}
+import type { Port, Node, Link } from '~/types/network'
 
 interface Props {
   nodes: Node[]
